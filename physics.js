@@ -114,6 +114,20 @@ export function moveAndCollide(entity, dt, tiles, tileW, tileH, isSolid, isOneWa
         let blocked = false;
         for (let row = top; row <= bottom && !blocked; row++) {
             for (let col = left; col <= right && !blocked; col++) {
+                // Treat out-of-bounds tiles as solid boundary walls
+                if (col < 0 || row < 0 || row >= tiles.length || col >= (tiles[row]?.length || 0)) {
+                    blocked = true;
+                    if (body.vx > 0) {
+                        entity.x = col * tileW - entity.width;
+                        body.vx = 0;
+                        body.onWallRight = true;
+                    } else {
+                        entity.x = (col + 1) * tileW;
+                        body.vx = 0;
+                        body.onWallLeft = true;
+                    }
+                    continue;
+                }
                 const tile = tiles[row]?.[col];
                 if (!tile || !isSolid(tile)) continue;
                 blocked = true;
@@ -144,6 +158,20 @@ export function moveAndCollide(entity, dt, tiles, tileW, tileH, isSolid, isOneWa
         let blocked = false;
         for (let row = top; row <= bottom && !blocked; row++) {
             for (let col = left; col <= right && !blocked; col++) {
+                // Treat out-of-bounds tiles as solid boundary
+                if (col < 0 || row < 0 || row >= tiles.length || col >= (tiles[row]?.length || 0)) {
+                    blocked = true;
+                    if (body.vy > 0) {
+                        entity.y = row * tileH - entity.height;
+                        body.vy = 0;
+                        body.onGround = true;
+                    } else {
+                        entity.y = (row + 1) * tileH;
+                        body.vy = 0;
+                        body.onCeiling = true;
+                    }
+                    continue;
+                }
                 const tile = tiles[row]?.[col];
                 if (!tile) continue;
 

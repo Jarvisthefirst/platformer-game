@@ -1,0 +1,5 @@
+{
+  "name": "chronos-edge-tests",
+  "type": "module",
+  "private": true
+}

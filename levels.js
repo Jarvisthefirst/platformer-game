@@ -17,7 +17,7 @@ export class LevelManager {
     constructor() {
         this.currentLevel = null;
         this.levelData = null;
-        this.solidTiles = new Set([1, 2, 6]);
+        this.solidTiles = new Set([1, 2, 3, 6]);
         this.oneWayTiles = new Set([4]);
         this.hazardTiles = new Set([5]);
         this.colorMap = {
@@ -269,7 +269,7 @@ export function getLevel2() {
             { type: 'coin', x: 80, y: 16 * 18 },
             { type: 'coin', x: 100, y: 16 * 16 },
             { type: 'coin', x: 120, y: 16 * 14 },
-            { type: 'gem', x: 220, y: 16 * 14 },
+            { type: 'gem', x: 228, y: 16 * 14 },
             { type: 'coin', x: 340, y: 16 * 13 },
             { type: 'coin', x: 356, y: 16 * 13 },
             { type: 'coin', x: 450, y: 16 * 11 },
@@ -377,20 +377,20 @@ export function getLevel3() {
     const objects = {
         player_spawn: { x: 40, y: 16 * 27 },
         enemies: [
-            { type: 'shooter', x: 256, y: 16 * 13 },
+            { type: 'shooter', x: 256, y: 16 * 14 },
             { type: 'chaser', x: 350, y: 16 * 23 },
             { type: 'walker', x: 500, y: 16 * 17 },
             { type: 'walker', x: 650, y: 16 * 20 },
-            { type: 'shooter', x: 700, y: 16 * 12 },
+            { type: 'shooter', x: 700, y: 16 * 14 },
             { type: 'chaser', x: 840, y: 16 * 23 },
         ],
         collectibles: [
             { type: 'coin', x: 80, y: 16 * 22 },
             { type: 'coin', x: 120, y: 16 * 19 },
             { type: 'coin', x: 160, y: 16 * 16 },
-            { type: 'gem', x: 220, y: 16 * 13 },
-            { type: 'coin', x: 340, y: 16 * 20 },
-            { type: 'coin', x: 356, y: 16 * 20 },
+            { type: 'gem', x: 244, y: 16 * 13 },
+            { type: 'coin', x: 340, y: 16 * 19 },
+            { type: 'coin', x: 356, y: 16 * 19 },
             { type: 'shard', x: 450, y: 16 * 13 },
             { type: 'shard', x: 500, y: 16 * 17 },
             { type: 'shard', x: 600, y: 16 * 14 },
@@ -417,3 +417,182 @@ export function getLevel3() {
 
 export const LEVELS = [getLevel1, getLevel2, getLevel3];
 export const LEVEL_NAMES = ['The Great Gearworks', 'Gears & Steam', 'Crystal Hall'];
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Save/Load System
+// ═══════════════════════════════════════════════════════════════════════
+
+const SAVE_KEY = 'chronosEdge_save';
+
+/**
+ * Save game state to localStorage.
+ * @param {object} state - Game state to persist
+ * @returns {boolean} success
+ */
+export function saveGame(state) {
+    try {
+        const data = JSON.stringify({
+            score: state.score ?? 0,
+            lives: state.lives ?? 3,
+            levelIndex: state.levelIndex ?? 0,
+            totalDeaths: state.totalDeaths ?? 0,
+            chronoCrystals: state.chronoCrystals ?? 0,
+            unlockedPowers: state.unlockedPowers ?? [],
+            completedLevels: state.completedLevels ?? [],
+        });
+        localStorage.setItem(SAVE_KEY, data);
+        return true;
+    } catch (e) {
+        console.warn('Failed to save:', e);
+        return false;
+    }
+}
+
+/**
+ * Load game state from localStorage.
+ * @returns {object|null} Parsed state or null if no save / corrupted
+ */
+export function loadGame() {
+    try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        // Default missing fields for forward compatibility
+        return {
+            score: data.score ?? 0,
+            lives: data.lives ?? 3,
+            levelIndex: data.levelIndex ?? 0,
+            totalDeaths: data.totalDeaths ?? 0,
+            chronoCrystals: data.chronoCrystals ?? 0,
+            unlockedPowers: data.unlockedPowers ?? [],
+            completedLevels: data.completedLevels ?? [],
+        };
+    } catch (e) {
+        return null;
+    }
+}
+
+/**
+ * Remove saved game data from localStorage.
+ */
+export function clearSave() {
+    localStorage.removeItem(SAVE_KEY);
+}
+
+/**
+ * GameState — runtime game state object with helper methods.
+ */
+export class GameState {
+    constructor(data = {}) {
+        this.score = data.score ?? 0;
+        this.lives = data.lives ?? 3;
+        this.levelIndex = data.levelIndex ?? 0;
+        this.totalDeaths = data.totalDeaths ?? 0;
+        this.deathTimer = 0;
+        this.collectiblesCollected = data.collectiblesCollected ?? [];
+    }
+
+    addScore(points) {
+        this.score += points;
+    }
+
+    loseLife() {
+        if (this.lives > 0) this.lives--;
+    }
+
+    isGameOver() {
+        return this.lives <= 0;
+    }
+
+    toJSON() {
+        return {
+            score: this.score,
+            lives: this.lives,
+            levelIndex: this.levelIndex,
+            totalDeaths: this.totalDeaths,
+        };
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  LevelManager extensions for test support
+// ═══════════════════════════════════════════════════════════════════════
+
+/**
+ * Load multiple levels from an array of factory functions.
+ * @param {Function[]} levelFactories - Array of level-builder functions
+ */
+LevelManager.prototype.loadLevels = function loadLevels(levelFactories) {
+    this._levelFactories = levelFactories;
+    this.levels = levelFactories.map((fn, i) => {
+        const data = fn();
+        return {
+            data,
+            name: data.properties?.name || `Level ${i + 1}`,
+            width: data.width,
+            height: data.height,
+        };
+    });
+};
+
+/**
+ * Switch to a level by index, loading its data into the manager.
+ * @param {number} index - Level index
+ */
+LevelManager.prototype.switchLevel = function switchLevel(index) {
+    if (!this._levelFactories || index < 0 || index >= this._levelFactories.length) {
+        console.warn(`Level index ${index} out of range`);
+        return;
+    }
+    this.loadFromData(this._levelFactories[index]());
+    this.currentLevel = index;
+};
+
+/**
+ * Get tile ID at a specific column and row in a given layer.
+ * @param {number} col - Tile column
+ * @param {number} row - Tile row
+ * @param {string} [layerName='foreground'] - Layer to query
+ * @returns {number} Tile ID (0 for empty/out of bounds)
+ */
+LevelManager.prototype.getTileAt = function getTileAt(col, row, layerName = 'foreground') {
+    const layer = this.layers[layerName];
+    if (!layer) return 0;
+    if (row < 0 || row >= layer.length) return 0;
+    if (col < 0 || col >= layer[0].length) return 0;
+    return layer[row][col] || 0;
+};
+
+/**
+ * Get the collision layer for the current level.
+ * @returns {number[][]} 2D array of tile IDs (fg layer)
+ */
+LevelManager.prototype.getCollisionLayer = function getCollisionLayer() {
+    return this.layers.foreground || [];
+};
+
+/**
+ * Check if a tile ID is solid.
+ * @param {number} id - Tile ID
+ * @returns {boolean}
+ */
+LevelManager.prototype.isSolid = function isSolid(id) {
+    return this.solidTiles.has(id);
+};
+
+/**
+ * Check if a tile ID is a one-way platform.
+ * @param {number} id - Tile ID
+ * @returns {boolean}
+ */
+LevelManager.prototype.isOneWay = function isOneWay(id) {
+    return this.oneWayTiles.has(id);
+};
+
+/**
+ * Get a list of all solid tile IDs (deduplicated).
+ * @returns {number[]}
+ */
+LevelManager.prototype.getSolidTileIds = function getSolidTileIds() {
+    return [...this.solidTiles];
+};

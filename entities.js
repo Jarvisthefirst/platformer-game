@@ -39,6 +39,12 @@ export class Entity {
 
     destroy() { this.alive = false; }
 
+    setTileGrid(tiles, tileW, tileH) {
+        this.tiles = tiles;
+        this.tileW = tileW;
+        this.tileH = tileH;
+    }
+
     getCenter() {
         return { x: this.x + this.width / 2, y: this.y + this.height / 2 };
     }
@@ -280,8 +286,10 @@ export class Player extends Entity {
             this.dashTimer = this.dashDuration;
             this.canDash = false;
             this.dashDir = this.moveInput.x !== 0 ? this.moveInput.x : (this.flipX ? -1 : 1);
+            this.body.vx = this.dashDir * this.dashSpeed;
             this.body.vy = 0;
             this.body.gravityScale = 0;
+            this.invincible = true;
             this.attackHitSet.clear();
             return;
         }
@@ -298,6 +306,11 @@ export class Player extends Entity {
 
         // ── Apply physics ──
         applyPhysics(this.body, dt);
+
+        // ── Tile collision ──
+        if (this.tiles) {
+            moveAndCollide(this, dt, this.tiles, this.tileW, this.tileH, id => id >= 1, id => id === 2);
+        }
 
         // ── State ──
         if (!this.alive) {
@@ -382,7 +395,7 @@ export class Player extends Entity {
         if (this.slowActive) {
             this.slowActive = false;
             this.activePower = null;
-            return false;
+            return true;
         }
         if (this.chronoGauge < 2.0) return false;
         this.chronoGauge -= 2.0;
@@ -400,7 +413,7 @@ export class Player extends Entity {
         if (this.rushActive) {
             this.rushActive = false;
             this.activePower = null;
-            return false;
+            return true;
         }
         if (this.chronoGauge < 1.0) return false;
         this.chronoGauge -= 1.0;
@@ -481,6 +494,11 @@ export class Enemy extends Entity {
 
         applyPhysics(this.body, dt, PHYSICS.enemyGravity);
 
+        // ── Tile collision ──
+        if (this.tiles) {
+            moveAndCollide(this, dt, this.tiles, this.tileW, this.tileH, id => id >= 1, id => id === 2);
+        }
+
         if (Math.abs(this.body.vx) > 5) {
             this.animTimer += dt;
             if (this.animTimer >= this.animSpeed) {
@@ -557,6 +575,11 @@ export class ChaserEnemy extends Enemy {
 
         applyPhysics(this.body, dt, PHYSICS.enemyGravity);
 
+        // ── Tile collision ──
+        if (this.tiles) {
+            moveAndCollide(this, dt, this.tiles, this.tileW, this.tileH, id => id >= 1, id => id === 2);
+        }
+
         this.flipX = this.direction < 0;
         if (this.health <= 0 || this.y > 2000) this.destroy();
     }
@@ -605,6 +628,12 @@ export class ShooterEnemy extends Enemy {
         }
 
         applyPhysics(this.body, dt, PHYSICS.enemyGravity);
+
+        // ── Tile collision ──
+        if (this.tiles) {
+            moveAndCollide(this, dt, this.tiles, this.tileW, this.tileH, id => id >= 1, id => id === 2);
+        }
+
         this.flipX = this.direction < 0;
         if (this.health <= 0 || this.y > 2000) this.destroy();
     }
@@ -671,7 +700,7 @@ export class Collectible extends Entity {
 // ═══════════════════════════════════════════════════════════
 
 export class Projectile extends Entity {
-    constructor(x, y, dirX, dirY, speed = 400) {
+    constructor(x, y, dirX, dirY, speed = 400, fromPlayer = true) {
         super(x, y, 4, 4);
         this.tags.push('projectile');
         const len = Math.sqrt(dirX * dirX + dirY * dirY) || 1;
@@ -680,15 +709,21 @@ export class Projectile extends Entity {
         this.body.gravityScale = 0;
         this.lifetime = 2;
         this.timer = 0;
-        this.fromPlayer = true; // true = player projectile, false = enemy
+        this.fromPlayer = fromPlayer; // true = player projectile, false = enemy
         if (!this.fromPlayer) this.tags.push('enemy_projectile');
     }
 
     update(dt) {
         this.timer += dt;
         if (this.timer >= this.lifetime) this.destroy();
-        this.x += this.body.vx * dt;
-        this.y += this.body.vy * dt;
+
+        // ── Tile collision ──
+        if (this.tiles) {
+            moveAndCollide(this, dt, this.tiles, this.tileW, this.tileH, id => id >= 1, id => id === 2);
+        } else {
+            this.x += this.body.vx * dt;
+            this.y += this.body.vy * dt;
+        }
     }
 
     onCollide(other) {
