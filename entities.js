@@ -122,7 +122,7 @@ export class Player extends Entity {
         this.chronoRechargeRate = 0.666; // seconds of gauge per real second
 
         // Time powers
-        this.unlockedPowers = ['burst'];
+        this.unlockedPowers = ['burst', 'slow', 'rush'];
         this.activePower = null; // null, 'slow', 'rush'
         this.burstTimer = 0;
         this.burstDuration = 0.5;

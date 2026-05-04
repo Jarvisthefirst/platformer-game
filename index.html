@@ -181,7 +181,6 @@
 
             gameState.enemies = levelManager.getObjects('enemies').map(e => {
                 const en = spawnEnemy(e.type, e.x, e.y);
-                en.setTileGrid(tiles, tw, th);
                 return en;
             });
             gameState.collectibles = levelManager.getObjects('collectibles').map(c => spawnCollectible(c.type, c.x, c.y));
@@ -356,13 +355,6 @@
                     gameState.totalDeaths = save.totalDeaths || 0;
                 }
                 setupLevel(gameState.levelIndex);
-                // Set tile grid on player for internal collision
-                const _setTw = levelManager.levelData?.tileWidth || 16;
-                const _setTh = levelManager.levelData?.tileHeight || 16;
-                const _setTiles = levelManager.getCollisionLayer();
-                if (gameState.player) {
-                    gameState.player.setTileGrid(_setTiles, _setTw, _setTh);
-                }
                 transition.start('fade', 'in', 0.5);
                 audio.startMusic();
                 this.enemyShootTimer = 0;
@@ -399,6 +391,17 @@
                 if (input.justPressed('KeyL') || input.isDown('GAMEPAD_X') || input.justPressed('KeyX')) pInput.dash = true;
                 if (input.justPressed('KeyJ') || input.isDown('GAMEPAD_B') || input.justPressed('KeyZ')) pInput.attack = true;
                 if (input.justPressed('KeyK') || input.isDown('GAMEPAD_Y') || input.justPressed('ShiftLeft') || input.justPressed('ShiftRight')) pInput.power = true;
+
+                // ── Time powers (keys 2/3) ──
+                if (player.alive) {
+                    if (input.justPressed('Digit2') || input.justPressed('Numpad2')) {
+                        player.toggleSlowField();
+                    }
+                    if (input.justPressed('Digit3') || input.justPressed('Numpad3')) {
+                        player.toggleTimeRush();
+                    }
+                }
+
 
 
 
@@ -525,7 +528,6 @@
                             const proj = new Projectile(spawn.x, spawn.y, dx/len, dy/len, 250);
                             proj.fromPlayer = false;
                             proj.tags.push('enemy_projectile');
-                            proj.setTileGrid(tiles, tw, th);
                             gameState.projectiles.push(proj);
                             enemy.resetShootTimer();
                         }
@@ -683,10 +685,8 @@
                 const player = gameState.player;
 
                 // ── Parallax background ──
-                ctx.save();
-                ctx.translate(-cam.x, -cam.y);
+                // Rendered in engine's camera transform space (no extra translate)
                 parallax.render(ctx, vw, vh);
-                ctx.restore();
 
                 // ── Background tiles ──
                 const bgTiles = levelManager.getLayer('background');

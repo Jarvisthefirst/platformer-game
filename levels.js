@@ -423,69 +423,6 @@ export const LEVELS = [getLevel1, getLevel2, getLevel3];
 export const LEVEL_NAMES = ['The Great Gearworks', 'Gears & Steam', 'Crystal Hall'];
 
 // ═══════════════════════════════════════════════════════════════════════
-//  Save/Load System
-// ═══════════════════════════════════════════════════════════════════════
-
-const SAVE_KEY = 'chronosEdge_save';
-
-/**
- * Save game state to localStorage.
- * @param {object} state - Game state to persist
- * @returns {boolean} success
- */
-export function saveGame(state) {
-    try {
-        const data = JSON.stringify({
-            score: state.score ?? 0,
-            lives: state.lives ?? 3,
-            levelIndex: state.levelIndex ?? 0,
-            totalDeaths: state.totalDeaths ?? 0,
-            chronoCrystals: state.chronoCrystals ?? 0,
-            unlockedPowers: state.unlockedPowers ?? [],
-            completedLevels: state.completedLevels ?? [],
-        });
-        localStorage.setItem(SAVE_KEY, data);
-        return true;
-    } catch (e) {
-        console.warn('Failed to save:', e);
-        return false;
-    }
-}
-
-/**
- * Load game state from localStorage.
- * @returns {object|null} Parsed state or null if no save / corrupted
- */
-export function loadGame() {
-    try {
-        const raw = localStorage.getItem(SAVE_KEY);
-        if (!raw) return null;
-        const data = JSON.parse(raw);
-        // Default missing fields for forward compatibility
-        return {
-            score: data.score ?? 0,
-            lives: data.lives ?? 3,
-            levelIndex: data.levelIndex ?? 0,
-            totalDeaths: data.totalDeaths ?? 0,
-            chronoCrystals: data.chronoCrystals ?? 0,
-            unlockedPowers: data.unlockedPowers ?? [],
-            completedLevels: data.completedLevels ?? [],
-        };
-    } catch (e) {
-        return null;
-    }
-}
-
-/**
- * Remove saved game data from localStorage.
- */
-export function clearSave() {
-    localStorage.removeItem(SAVE_KEY);
-}
-
-/**
- * GameState — runtime game state object with helper methods.
- */
 export class GameState {
     constructor(data = {}) {
         this.score = data.score ?? 0;
