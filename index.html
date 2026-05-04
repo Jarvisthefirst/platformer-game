@@ -3,225 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Steam Platformer</title>
+    <title>Chronos Edge — Platformer</title>
     <style>
-        /* ── Dark theme, centered canvas ── */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        html, body {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background: #0a0a14;
-            font-family: monospace;
-            color: #ccc;
-        }
-
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        /* ── Game Canvas ── */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0a14; font-family: monospace; color: #ccc; }
+        body { display: flex; justify-content: center; align-items: center; }
         #game-canvas {
-            display: block;
-            background: #1a1a2e;
-
-            /* Crisp pixel rendering */
-            image-rendering: pixelated;
-            image-rendering: crisp-edges;
-
-            /* Fill the available area while maintaining aspect ratio */
-            max-width: 100vw;
-            max-height: 100vh;
-            width: 100%;
-            height: auto;
-
-            /* Subtle glow border */
-            box-shadow: 0 0 20px rgba(100, 100, 255, 0.2),
-                        0 0 40px rgba(100, 100, 255, 0.05);
+            display: block; background: #1a1a2e;
+            image-rendering: pixelated; image-rendering: crisp-edges;
+            max-width: 100vw; max-height: 100vh; width: 100%; height: auto;
+            box-shadow: 0 0 20px rgba(100,100,255,0.2), 0 0 40px rgba(100,100,255,0.05);
             border: 1px solid #2a2a4e;
         }
-
-        /* ── Loading Screen ── */
         #loading-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background: #0a0a14;
-            z-index: 100;
-            transition: opacity 0.5s ease;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            background: #0a0a14; z-index: 100; transition: opacity 0.5s ease;
         }
-
-        #loading-screen.hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        #loading-screen h1 {
-            font-size: 2rem;
-            color: #6af;
-            margin-bottom: 1rem;
-            letter-spacing: 4px;
-            text-transform: uppercase;
-        }
-
-        .loading-bar-container {
-            width: 200px;
-            height: 6px;
-            background: #222;
-            border: 1px solid #333;
-            border-radius: 3px;
-            overflow: hidden;
-        }
-
-        .loading-bar-fill {
-            width: 0%;
-            height: 100%;
-            background: linear-gradient(90deg, #6af, #a6f);
-            transition: width 0.3s ease;
-        }
-
-        #loading-text {
-            margin-top: 0.8rem;
-            font-size: 0.75rem;
-            color: #666;
-        }
-
-        /* ── Title Screen Overlay (injected by scene) ── */
-        #ui-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 50;
-        }
-
-        #ui-overlay.active {
-            pointer-events: auto;
-        }
-
-        /* ── Responsive ── */
-        @media (max-width: 640px) {
-            #game-canvas {
-                max-width: 100vw;
-                max-height: 100vh;
-            }
-
-            #loading-screen h1 {
-                font-size: 1.5rem;
-            }
-        }
-
-        @media (min-width: 1280px) {
-            #game-canvas {
-                max-width: 90vw;
-                max-height: 90vh;
-            }
-        }
+        #loading-screen.hidden { opacity: 0; pointer-events: none; }
+        #loading-screen h1 { font-size: 2rem; color: #6af; margin-bottom: 1rem; letter-spacing: 4px; text-transform: uppercase; }
+        .loading-bar-container { width: 200px; height: 6px; background: #222; border: 1px solid #333; border-radius: 3px; overflow: hidden; }
+        .loading-bar-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #6af, #a6f); transition: width 0.3s ease; }
+        #loading-text { margin-top: 0.8rem; font-size: 0.75rem; color: #666; }
+        @media (max-width: 640px) { #loading-screen h1 { font-size: 1.5rem; } }
     </style>
 </head>
 <body>
-
-    <!-- Loading Screen -->
     <div id="loading-screen">
-        <h1>✦ Platformer ✦</h1>
-        <div class="loading-bar-container">
-            <div class="loading-bar-fill" id="loading-bar"></div>
-        </div>
-        <div id="loading-text">Loading assets...</div>
+        <h1>✦ CHRONOS EDGE ✦</h1>
+        <div class="loading-bar-container"><div class="loading-bar-fill" id="loading-bar"></div></div>
+        <div id="loading-text">Loading...</div>
     </div>
-
-    <!-- Game Canvas -->
     <canvas id="game-canvas"></canvas>
 
-    <!-- UI Overlay (for in-game HTML menus if needed) -->
-    <div id="ui-overlay"></div>
-
-    <!-- ── Module Entry ── -->
     <script type="module">
-        /**
-         * Main entry point for the Steam Platformer.
-         * Initializes the engine, loads assets, and starts the game loop.
-         */
-
         import { Engine, Scene } from './engine.js';
-        import { PHYSICS, collideWithTilemap } from './physics.js';
-        import { Player, Enemy, Collectible, Projectile, ParticleSystem } from './entities.js';
-        import { drawColoredTilemap, drawParticles, drawHealthBar, drawScore, drawLives, ParallaxBackground, Transition } from './renderer.js';
-        import { LevelManager, getTestLevel } from './levels.js';
+        import { PHYSICS, applyPhysics, moveAndCollide, aabbOverlap } from './physics.js';
+        import { Player, Enemy, ChaserEnemy, ShooterEnemy, Collectible, Projectile, ParticleSystem } from './entities.js';
+        import { drawColoredTilemap, drawParticles, drawHealthBar, ParallaxBackground, Transition } from './renderer.js';
+        import { LevelManager, LEVELS, LEVEL_NAMES } from './levels.js';
         import { AudioManager } from './audio.js';
 
-        // ── DOM References ──
         const canvas = document.getElementById('game-canvas');
         const loadingBar = document.getElementById('loading-bar');
         const loadingText = document.getElementById('loading-text');
         const loadingScreen = document.getElementById('loading-screen');
 
-        // ── Canvas Sizing ──
         function resizeCanvas() {
-            const scale = 3; // Scale factor for crisp retro look on modern displays
-            const baseW = 320;
-            const baseH = 180;
-
-            // Calculate size to fill screen while maintaining aspect ratio
-            const aspect = baseW / baseH;
+            const aspect = 320 / 180;
             let w = window.innerWidth * 0.95;
             let h = w / aspect;
-
-            if (h > window.innerHeight * 0.9) {
-                h = window.innerHeight * 0.9;
-                w = h * aspect;
-            }
-
+            if (h > window.innerHeight * 0.9) { h = window.innerHeight * 0.9; w = h * aspect; }
             canvas.width = Math.floor(w);
             canvas.height = Math.floor(h);
         }
-
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        // ── Initialize Engine ──
         const engine = new Engine(canvas);
         engine.setBaseResolution(320, 180);
-        engine.debug = false; // Set true for FPS overlay
+        engine.debug = false;
 
-        // ── Audio ──
         const audio = new AudioManager();
-
-        // ── Level Manager ──
         const levelManager = new LevelManager();
-        levelManager.defineTileTypes(
-            [1, 2],     // solid: ground=1, wall=2
-            [4],        // one-way: 4
-            []          // hazards
-        );
-        levelManager.setColorMap({
-            1: '#4a7a4a',  // ground — green
-            2: '#666',     // wall — grey
-            3: '#8a6a4a',  // platform — brown
-            4: '#4a6a8a',  // one-way — blue
-        });
-
-        // ── Global Particle System ──
         const particleSystem = new ParticleSystem(300);
         const parallax = new ParallaxBackground();
+        const transition = new Transition();
 
         // ── Game State ──
         const gameState = {
@@ -231,320 +78,704 @@
             projectiles: [],
             score: 0,
             lives: 3,
-            health: 5,
-            maxHealth: 5,
+            levelIndex: 0,
             deathTimer: 0,
-            won: false,
-            levelTransition: null,
+            levelComplete: false,
+            levelCompleteTimer: 0,
+            totalDeaths: 0,
+            lastCheckpoint: null,
+            paused: false,
         };
 
-        // ── Transition Effect ──
-        const transition = new Transition();
+        // ═══════════════════════════════════════════════════════════════════
+        //  SAVE / LOAD
+        // ═══════════════════════════════════════════════════════════════════
 
-        // ═══════════════════════════════════════════════════════════════
-        //  Gameplay Scene
-        // ═══════════════════════════════════════════════════════════════
+        const SAVE_KEY = 'chronos_edge_save';
 
-        class GameplayScene extends Scene {
+        function saveGame() {
+            const data = {
+                version: 1,
+                timestamp: Date.now(),
+                score: gameState.score,
+                lives: gameState.lives,
+                levelIndex: gameState.levelIndex,
+                totalDeaths: gameState.totalDeaths,
+                player: gameState.player ? {
+                    health: gameState.player.health,
+                    maxHealth: gameState.player.maxHealth,
+                    chronoGaugeMax: gameState.player.chronoGaugeMax,
+                } : null,
+            };
+            try {
+                localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+            } catch (e) { console.warn('Save failed:', e); }
+        }
+
+        function loadGame() {
+            try {
+                const raw = localStorage.getItem(SAVE_KEY);
+                if (!raw) return null;
+                const data = JSON.parse(raw);
+                if (data.version !== 1) return null;
+                return data;
+            } catch (e) { return null; }
+        }
+
+        function clearSave() {
+            localStorage.removeItem(SAVE_KEY);
+        }
+
+        function hasSave() {
+            return !!localStorage.getItem(SAVE_KEY);
+        }
+
+        function spawnEnemy(type, x, y) {
+            switch (type) {
+                case 'walker': return new Enemy(x, y);
+                case 'chaser': return new ChaserEnemy(x, y);
+                case 'shooter': return new ShooterEnemy(x, y);
+                default: return new Enemy(x, y);
+            }
+        }
+
+        function spawnCollectible(type, x, y) {
+            return new Collectible(x, y, type);
+        }
+
+        function buildLevel(index) {
+            const levelFn = LEVELS[index];
+            if (!levelFn) return null;
+            const data = levelFn();
+            levelManager.loadFromData(data);
+            return data;
+        }
+
+        function setupLevel(index) {
+            const data = buildLevel(index);
+            if (!data) {
+                engine.switchScene('gameover', { score: gameState.score, won: true });
+                return;
+            }
+
+            // Setup parallax
+            parallax.layers = [];
+            const p = levelManager.parallax;
+            if (p.sky) parallax.addLayer({ color: p.sky, speed: 0 });
+            if (p.mountains) parallax.addLayer({ color: p.mountains.color || '#2d2d5e', speed: p.mountains.speed || 0.2 });
+            if (p.trees) parallax.addLayer({ color: p.trees.color || '#1e4a2e', speed: p.trees.speed || 0.5 });
+
+            engine.camera.setBounds(0, 0, levelManager.width, levelManager.height);
+
+            const spawn = levelManager.getPlayerSpawn();
+            if (!gameState.player || !gameState.player.alive) {
+                gameState.player = new Player(spawn.x, spawn.y);
+            } else {
+                gameState.player.x = spawn.x;
+                gameState.player.y = spawn.y;
+                gameState.player.body.reset();
+                gameState.player.alive = true;
+                gameState.player.state = 'idle';
+            }
+            engine.camera.follow(gameState.player, 0.08);
+
+            gameState.enemies = levelManager.getObjects('enemies').map(e => spawnEnemy(e.type, e.x, e.y));
+            gameState.collectibles = levelManager.getObjects('collectibles').map(c => spawnCollectible(c.type, c.x, c.y));
+            gameState.projectiles = [];
+            gameState.deathTimer = 0;
+            gameState.levelComplete = false;
+            gameState.levelCompleteTimer = 0;
+            gameState.lastCheckpoint = null;
+            particleSystem.clear();
+            audio.init();
+            saveGame();
+        }
+
+        function respawnPlayer() {
+            const spawn = gameState.lastCheckpoint || levelManager.getPlayerSpawn();
+            const player = gameState.player;
+            if (!player) return;
+            player.x = spawn.x;
+            player.y = spawn.y;
+            player.body.reset();
+            player.alive = true;
+            player.health = player.maxHealth;
+            player.state = 'idle';
+            player.invincible = true;
+            player.invincibleTimer = 1.5;
+            player.chronoGauge = player.chronoGaugeMax;
+            player.slowActive = false;
+            player.rushActive = false;
+            player.activePower = null;
+            player.isDashing = false;
+            gameState.deathTimer = 0;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        //  MENU SCENE
+        // ═══════════════════════════════════════════════════════════════════
+
+        class MenuScene extends Scene {
             constructor() {
                 super();
-                this.name = 'gameplay';
+                this.timer = 0;
+                this.blinkTimer = 0;
+                this.selectedOption = 0;
+                this.options = [];
+                this.confirmStart = 0;
             }
 
             enter() {
-                // Load test level
-                const levelData = getTestLevel();
-                levelManager.loadFromData(levelData);
-
-                // Setup parallax
-                parallax.layers = [];
-                const p = levelManager.parallax;
-                if (p.sky)         parallax.addLayer({ color: p.sky, speed: 0 });
-                if (p.mountains)   parallax.addLayer({ color: p.mountains.color || '#2d2d5e', speed: p.mountains.speed || 0.2 });
-                if (p.trees)       parallax.addLayer({ color: p.trees.color || '#1e4a2e', speed: p.trees.speed || 0.5 });
-
-                // Set camera bounds
-                engine.camera.setBounds(0, 0, levelManager.width, levelManager.height);
-
-                // Create player
-                const spawn = levelManager.getPlayerSpawn();
-                gameState.player = new Player(spawn.x, spawn.y);
-                engine.camera.follow(gameState.player, 0.08);
-
-                // Spawn enemies
-                gameState.enemies = [];
-                for (const e of levelManager.getObjects('enemies')) {
-                    const enemy = new Enemy(e.x, e.y);
-                    gameState.enemies.push(enemy);
-                }
-
-                // Spawn collectibles
-                gameState.collectibles = [];
-                for (const c of levelManager.getObjects('collectibles')) {
-                    const item = new Collectible(c.x, c.y, c.type);
-                    gameState.collectibles.push(item);
-                }
-
-                gameState.projectiles = [];
-                gameState.deathTimer = 0;
-                particleSystem.clear();
-
-                // Start audio on first interaction
-                audio.init();
+                this.timer = 0;
+                this.blinkTimer = 0;
+                this.selectedOption = 0;
+                this.confirmStart = 0;
+                this.options = ['NEW GAME'];
+                if (hasSave()) this.options.push('CONTINUE');
+                this.options.push('CREDITS');
+                audio.stopMusic();
             }
 
             update(dt) {
-                if (this.paused) return;
+                this.timer += dt;
+                this.blinkTimer += dt;
 
-                // ── Update camera ──
-                engine.camera.update(dt);
-
-                // ── Handle player input ──
                 const input = engine.input;
-                const playerInput = {
-                    x: 0,
-                    jump: false,
-                    jumpHeld: false,
-                };
-
-                // Keyboard
-                if (input.isDown('ArrowLeft') || input.isDown('KeyA')) playerInput.x = -1;
-                if (input.isDown('ArrowRight') || input.isDown('KeyD')) playerInput.x = 1;
-                if (input.justPressed('Space') || input.justPressed('ArrowUp') || input.justPressed('KeyW')) {
-                    playerInput.jump = true;
+                // Navigate
+                if (input.justPressed('ArrowDown') || input.justPressed('KeyS') || input.justPressed('DPAD_DOWN')) {
+                    this.selectedOption = (this.selectedOption + 1) % this.options.length;
                 }
-                if (input.isDown('Space') || input.isDown('ArrowUp') || input.isDown('KeyW')) {
-                    playerInput.jumpHeld = true;
+                if (input.justPressed('ArrowUp') || input.justPressed('KeyW') || input.justPressed('DPAD_UP')) {
+                    this.selectedOption = (this.selectedOption - 1 + this.options.length) % this.options.length;
                 }
-
-                // Gamepad
-                const stickX = input.getStickX();
-                if (stickX < -0.25) playerInput.x = -1;
-                else if (stickX > 0.25) playerInput.x = 1;
-                if (input.justPressed('GAMEPAD_A')) playerInput.jump = true;
-                if (input.isDown('GAMEPAD_A')) playerInput.jumpHeld = true;
-
-                // Shoot
-                if (input.justPressed('GAMEPAD_B') || input.justPressed('KeyF')) {
-                    this._shootProjectile();
-                }
-
-                // ── Update player ──
-                const player = gameState.player;
-                if (player && player.alive) {
-                    player.setInput(playerInput);
-                    player.update(dt);
-
-                    // Tile collision
-                    const tiles = levelManager.getCollisionLayer();
-                    const tileW = levelManager.levelData?.tileWidth || 16;
-                    const tileH = levelManager.levelData?.tileHeight || 16;
-                    collideWithTilemap(
-                        player,
-                        tiles,
-                        tileW,
-                        tileH,
-                        (id) => levelManager.isSolid(id),
-                        (id) => levelManager.isOneWay(id)
-                    );
-
-                    // Check fall death
-                    if (player.y > levelManager.height + 50) {
-                        this._playerDied();
-                    }
-
-                    // Check hazard tiles
-                    if (player.onGround) {
-                        const playerTileCol = Math.floor((player.x + player.width / 2) / tileW);
-                        const playerTileRow = Math.floor((player.y + player.height) / tileH);
-                        const tileId = tiles[playerTileRow]?.[playerTileCol];
-                        if (tileId && levelManager.isHazard(tileId)) {
-                            player.takeDamage(1);
+                if (input.justPressed('Enter') || input.justPressed('Space') || input.justPressed('GAMEPAD_A')) {
+                    const opt = this.options[this.selectedOption];
+                    if (opt === 'NEW GAME') {
+                        this.confirmStart++;
+                        if (this.confirmStart >= 2) {
+                            clearSave();
+                            gameState.score = 0;
+                            gameState.lives = 3;
+                            gameState.levelIndex = 0;
+                            gameState.totalDeaths = 0;
+                            transition.start('fade', 'out', 0.6, () => engine.switchScene('gameplay'));
                         }
-                    }
-
-                    // Emit particles from player (footsteps when running)
-                    if (player.onGround && Math.abs(player.body.vx) > 50) {
-                        particleSystem.emitStream(
-                            player.x + player.width / 2,
-                            player.y + player.height,
-                            { count: 1, speed: 20, life: 0.2, color: '#888', gravity: 100 }
-                        );
-                    }
-                } else if (player) {
-                    // Player dead — animate death
-                    player.update(dt);
-                    gameState.deathTimer += dt;
-
-                    if (gameState.deathTimer > 2) {
-                        this._respawn();
+                    } else if (opt === 'CONTINUE') {
+                        transition.start('fade', 'out', 0.6, () => engine.switchScene('gameplay'));
+                    } else if (opt === 'CREDITS') {
+                        // Just a toggle
+                        this.options[this.selectedOption] = '← MADE WITH ♥ →';
                     }
                 }
 
-                // ── Update enemies ──
-                for (const enemy of gameState.enemies) {
-                    if (!enemy.alive) continue;
-                    enemy.update(dt);
-
-                    const tiles = levelManager.getCollisionLayer();
-                    collideWithTilemap(
-                        enemy,
-                        tiles,
-                        levelManager.levelData?.tileWidth || 16,
-                        levelManager.levelData?.tileHeight || 16,
-                        (id) => levelManager.isSolid(id),
-                        (id) => levelManager.isOneWay(id)
-                    );
-
-                    // Check enemy-player collision
-                    if (player && player.alive && player.invincible === false) {
-                        const overlap = this._checkAABB(player, enemy);
-                        if (overlap) {
-                            player.onCollide(enemy);
-                            if (enemy.alive) {
-                                audio.playStomp();
-                                particleSystem.emit(
-                                    enemy.x + enemy.width / 2,
-                                    enemy.y + enemy.height / 2,
-                                    { count: 8, speed: 100, life: 0.4, color: '#fa4', gravity: 200 }
-                                );
-                            }
-                        }
-                    }
-                }
-
-                // Remove dead enemies
-                gameState.enemies = gameState.enemies.filter(e => e.alive);
-
-                // ── Update collectibles ──
-                for (const item of gameState.collectibles) {
-                    if (!item.alive) continue;
-                    item.update(dt);
-
-                    // Check collection
-                    if (player && player.alive) {
-                        const overlap = this._checkAABB(player, item);
-                        if (overlap) {
-                            const points = item.collect();
-                            if (item.collectibleType === 'heart') {
-                                player.health = Math.min(player.maxHealth, player.health + 1);
-                            } else {
-                                gameState.score += points;
-                            }
-                            audio.playCollect();
-                            particleSystem.emit(
-                                item.x + item.width / 2,
-                                item.y + item.height / 2,
-                                { count: 6, speed: 80, life: 0.3, color: '#ff0' }
-                            );
-                        }
-                    }
-                }
-                gameState.collectibles = gameState.collectibles.filter(c => c.alive);
-
-                // ── Update projectiles ──
-                for (const proj of gameState.projectiles) {
-                    if (!proj.alive) continue;
-                    proj.update(dt);
-
-                    // Trail particles
-                    particleSystem.emit(
-                        proj.x + proj.width / 2,
-                        proj.y + proj.height / 2,
-                        { count: 1, speed: 20, life: 0.15, color: '#ffa', gravity: 0 }
-                    );
-
-                    // Check vs enemies
-                    for (const enemy of gameState.enemies) {
-                        if (!enemy.alive) continue;
-                        if (this._checkAABB(proj, enemy)) {
-                            proj.onCollide(enemy);
-                            particleSystem.emit(
-                                enemy.x + enemy.width / 2,
-                                enemy.y + enemy.height / 2,
-                                { count: 6, speed: 80, life: 0.3, color: '#f44', gravity: 200 }
-                            );
-                        }
-                    }
-                }
-                gameState.projectiles = gameState.projectiles.filter(p => p.alive);
-
-                // ── Update particles ──
-                particleSystem.update(dt);
-
-                // ── Update parallax ──
-                const cam = engine.camera.getPosition();
-                parallax.update(cam.x, cam.y);
-
-                // ── Update transition ──
                 transition.update(dt);
             }
 
             render(ctx) {
-                const cam = engine.camera.getPosition();
-                const viewW = engine.baseWidth;
-                const viewH = engine.baseHeight;
+                const w = engine.baseWidth, h = engine.baseHeight;
+                ctx.fillStyle = '#0a0a1e';
+                ctx.fillRect(0, 0, w, h);
+
+                // Stars
+                for (let i = 0; i < 50; i++) {
+                    const sx = (i * 37 + 13) % w;
+                    const sy = (i * 71 + 29) % h;
+                    const b = Math.sin(this.timer * 2 + i) * 0.3 + 0.7;
+                    ctx.fillStyle = `rgba(255,255,255,${b * 0.4})`;
+                    ctx.fillRect(sx, sy, 2, 2);
+                }
+
+                // Title glow
+                ctx.save();
+                ctx.shadowColor = '#6af';
+                ctx.shadowBlur = 15;
+                ctx.fillStyle = '#7bf';
+                ctx.font = '18px monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('CHRONOS EDGE', w / 2, h / 3 - 8);
+                ctx.restore();
+
+                ctx.fillStyle = '#48a';
+                ctx.font = '6px monospace';
+                ctx.fillText('A Time-Bending Platformer', w / 2, h / 3 + 14);
+
+                // Menu options
+                for (let i = 0; i < this.options.length; i++) {
+                    const isSelected = i === this.selectedOption;
+                    const isConfirming = isSelected && this.options[i] === 'NEW GAME' && this.confirmStart > 0;
+                    ctx.fillStyle = isSelected ? '#6af' : '#888';
+                    ctx.font = isSelected ? '8px monospace' : '7px monospace';
+                    const label = isConfirming ? '→ PRESS AGAIN ←' : this.options[i];
+                    ctx.fillText(label, w / 2, h * 0.52 + i * 18);
+                    if (isSelected) {
+                        ctx.fillStyle = 'rgba(100,170,255,0.08)';
+                        ctx.fillRect(w/2 - 50, h * 0.52 + i * 18 - 6, 100, 14);
+                    }
+                }
+
+                // Controls
+                ctx.fillStyle = '#555';
+                ctx.font = '5px monospace';
+                ctx.fillText('ARROWS/WASD: Move    SPACE: Jump    J: Attack    L: Dash', w / 2, h * 0.82);
+                ctx.fillText('K: Time Power    Gamepad supported', w / 2, h * 0.87);
+
+                transition.render(ctx, w, h);
+            }
+            renderHUD(ctx) {}
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        //  GAMEPLAY SCENE
+        // ═══════════════════════════════════════════════════════════════════
+
+        class GameplayScene extends Scene {
+            constructor() {
+                super();
+                this.enemyShootTimer = 0;
+            }
+
+            enter(data) {
+                if (data && data.levelIndex !== undefined) {
+                    gameState.levelIndex = data.levelIndex;
+                }
+                // Load save data if exists
+                const save = loadGame();
+                if (save && !data?.fresh) {
+                    gameState.score = save.score || 0;
+                    gameState.lives = save.lives || 3;
+                    gameState.levelIndex = save.levelIndex || 0;
+                    gameState.totalDeaths = save.totalDeaths || 0;
+                }
+                setupLevel(gameState.levelIndex);
+                transition.start('fade', 'in', 0.5);
+                audio.startMusic();
+                this.enemyShootTimer = 0;
+            }
+
+            update(dt) {
+                if (this.paused) return;
+                const input = engine.input;
+
+                // Pause
+                if (input.justPressed('Escape') || input.justPressed('KeyP') || input.justPressed('GAMEPAD_START')) {
+                    engine.switchScene('pause');
+                    return;
+                }
+
+                engine.camera.update(dt);
+                const player = gameState.player;
+                if (!player) return;
+
+                // ── Player Input ──
+                const pInput = { x: 0, jump: false, jumpHeld: false, dash: false, attack: false, power: false };
+                if (input.isDown('ArrowLeft') || input.isDown('KeyA') || input.isDown('DPAD_LEFT') || input.isDown('STICK_LEFT')) pInput.x = -1;
+                if (input.isDown('ArrowRight') || input.isDown('KeyD') || input.isDown('DPAD_RIGHT') || input.isDown('STICK_RIGHT')) pInput.x = 1;
+                // Stick overrides
+                const sx = input.getStickX();
+                if (sx < -0.25) pInput.x = -1;
+                else if (sx > 0.25) pInput.x = 1;
+
+                if (input.justPressed('Space') || input.justPressed('ArrowUp') || input.justPressed('KeyW') ||
+                    input.justPressed('DPAD_UP') || input.justPressed('GAMEPAD_A')) pInput.jump = true;
+                if (input.isDown('Space') || input.isDown('ArrowUp') || input.isDown('KeyW') || input.isDown('GAMEPAD_A')) pInput.jumpHeld = true;
+
+                if (input.justPressed('KeyL') || input.isDown('GAMEPAD_X') || input.justPressed('KeyX')) pInput.dash = true;
+                if (input.justPressed('KeyJ') || input.isDown('GAMEPAD_B') || input.justPressed('KeyZ')) pInput.attack = true;
+                if (input.justPressed('KeyK') || input.isDown('GAMEPAD_Y') || input.justPressed('ShiftLeft') || input.justPressed('ShiftRight')) pInput.power = true;
+
+
+
+                // ── Update player ──
+                if (player.alive) {
+                    player.setInput(pInput);
+                    player.update(dt);
+
+                    const tiles = levelManager.getCollisionLayer();
+                    const tw = levelManager.levelData?.tileWidth || 16;
+                    const th = levelManager.levelData?.tileHeight || 16;
+                    moveAndCollide(player, dt, tiles, tw, th,
+                        id => levelManager.isSolid(id),
+                        id => levelManager.isOneWay(id));
+
+                    // Fall death
+                    if (player.y > levelManager.height + 50) {
+                        this._playerDied();
+                    }
+
+                    // Hazard tiles
+                    if (player.body.onGround) {
+                        const col = Math.floor((player.x + player.width / 2) / tw);
+                        const row = Math.floor((player.y + player.height) / th);
+                        const tile = tiles[row]?.[col];
+                        if (tile && levelManager.isHazard(tile)) {
+                            player.takeDamage(1);
+                            engine.camera.shake(4, 0.3);
+                        }
+                    }
+
+                    // Footstep particles
+                    if (player.body.onGround && Math.abs(player.body.vx) > 40 && Math.random() < 0.3) {
+                        particleSystem.emit(player.x + player.width / 2, player.y + player.height,
+                            { count: 1, speed: 15, life: 0.15, color: '#887766', gravity: 60 });
+                    }
+                } else {
+                    player.update(dt);
+                    gameState.deathTimer += dt;
+                    if (gameState.deathTimer > 2) {
+                        gameState.lives--;
+                        if (gameState.lives <= 0) {
+                            engine.switchScene('gameover', { score: gameState.score, won: false });
+                        } else {
+                            respawnPlayer();
+                        }
+                    }
+                }
+
+                // ── Update enemies ──
                 const tiles = levelManager.getCollisionLayer();
+                const tw = levelManager.levelData?.tileWidth || 16;
+                const th = levelManager.levelData?.tileHeight || 16;
 
-                // ── Background ──
-                parallax.render(ctx, viewW, viewH);
+                this.enemyShootTimer += dt;
 
-                // ── Tilemap ──
-                drawColoredTilemap(
-                    ctx, tiles, levelManager.colorMap,
-                    cam.x, cam.y, viewW, viewH,
-                    levelManager.levelData?.tileWidth || 16,
-                    levelManager.levelData?.tileHeight || 16
-                );
+                for (const enemy of gameState.enemies) {
+                    if (!enemy.alive) continue;
+
+                    // Distance-based aggro
+                    if (player.alive) {
+                        const dist = Math.abs(enemy.x - player.x);
+                        if (dist < enemy.detectRange) {
+                            enemy.aggroTowards(player);
+                        }
+                    }
+
+                    enemy.update(dt);
+                    moveAndCollide(enemy, dt, tiles, tw, th,
+                        id => levelManager.isSolid(id),
+                        id => levelManager.isOneWay(id));
+
+                    // Enemy-player collision
+                    if (player && player.alive) {
+                        // Stomp check
+                        if (aabbOverlap(player, enemy)) {
+                            const stomping = player.body.vy > 0 && player.y + player.height - 8 < enemy.y;
+                            if (stomping) {
+                                enemy.takeDamage(1);
+                                player.body.vy = -300;
+                                gameState.score += enemy.scoreValue || 100;
+                                audio.playStomp();
+                                particleSystem.emit(enemy.x + enemy.width/2, enemy.y + enemy.height/2,
+                                    { count: 8, speed: 80, life: 0.4, color: '#fa4', gravity: 200 });
+                                if (!enemy.alive) {
+                                    particleSystem.emit(enemy.x + enemy.width/2, enemy.y + enemy.height/2,
+                                        { count: 12, speed: 120, life: 0.6, color: '#f44', gravity: 200 });
+                                }
+                            } else if (!player.isDashing && !player.invincible) {
+                                player.takeDamage(enemy.damage || 1);
+                                audio.playDamage();
+                                engine.camera.shake(4, 0.3);
+                                if (player.alive) {
+                                    particleSystem.emit(player.x + player.width/2, player.y + player.height/2,
+                                        { count: 8, speed: 60, life: 0.4, color: '#4af', gravity: 100 });
+                                }
+                            }
+                        }
+
+                        // Chaser enemy attack
+                        if (enemy instanceof ChaserEnemy) {
+                            if (enemy.canAttack(player)) {
+                                enemy.performAttack();
+                                player.takeDamage(enemy.damage || 1);
+                                audio.playDamage();
+                                engine.camera.shake(4, 0.3);
+                            }
+                        }
+
+                        // Shooter enemy
+                        if (enemy instanceof ShooterEnemy && enemy.canShoot()) {
+                            const spawn = enemy.getProjectileSpawn();
+                            const dx = (player.x + player.width/2) - spawn.x;
+                            const dy = (player.y + player.height/2) - spawn.y;
+                            const len = Math.sqrt(dx*dx + dy*dy) || 1;
+                            const proj = new Projectile(spawn.x, spawn.y, dx/len, dy/len, 250);
+                            proj.fromPlayer = false;
+                            proj.tags.push('enemy_projectile');
+                            gameState.projectiles.push(proj);
+                            enemy.resetShootTimer();
+                        }
+                    }
+                }
+                gameState.enemies = gameState.enemies.filter(e => e.alive);
+
+                // ── Attack hitbox collision ──
+                if (player && player.alive) {
+                    const hitbox = player.getAttackHitbox();
+                    if (hitbox) {
+                        player.attackActiveFrames--;
+                        for (const enemy of gameState.enemies) {
+                            if (!enemy.alive || player.attackHitSet.has(enemy)) continue;
+                            if (aabbOverlap(hitbox, enemy)) {
+                                enemy.takeDamage(hitbox.damage);
+                                player.attackHitSet.add(enemy);
+                                gameState.score += enemy.scoreValue || 100;
+                                audio.playStomp();
+                                particleSystem.emit(enemy.x + enemy.width/2, enemy.y + enemy.height/2,
+                                    { count: 6, speed: 60, life: 0.3, color: '#ff4', gravity: 200 });
+                                if (!enemy.alive) {
+                                    particleSystem.emit(enemy.x + enemy.width/2, enemy.y + enemy.height/2,
+                                        { count: 12, speed: 120, life: 0.6, color: '#f44', gravity: 200 });
+                                }
+                            }
+                        }
+                    }
+                }
 
                 // ── Collectibles ──
+                for (const item of gameState.collectibles) {
+                    if (!item.alive) continue;
+                    item.update(dt);
+                    if (player && player.alive && aabbOverlap(player, item)) {
+                        const points = item.collect();
+                        if (item.collectibleType === 'heart') {
+                            player.health = Math.min(player.maxHealth, player.health + 1);
+                        } else if (item.collectibleType === 'shard') {
+                            gameState.score += points;
+                            player.chronoGaugeMax = Math.min(12, player.chronoGaugeMax + 0.5);
+                        } else {
+                            gameState.score += points;
+                        }
+                        audio.playCollect();
+                        particleSystem.emit(item.x + item.width/2, item.y + item.height/2,
+                            { count: 6, speed: 60, life: 0.3, color: '#ff0' });
+                    }
+                }
+                gameState.collectibles = gameState.collectibles.filter(c => c.alive);
+
+                // ── Projectiles ──
+                for (const proj of gameState.projectiles) {
+                    if (!proj.alive) continue;
+                    proj.update(dt);
+
+                    // Wall collision
+                    const pc = Math.floor(proj.x / 16);
+                    const pr = Math.floor(proj.y / 16);
+                    const pt = tiles[pr]?.[pc];
+                    if (pt && levelManager.isSolid(pt)) { proj.destroy(); continue; }
+
+                    if (proj.fromPlayer) {
+                        // Hit enemies
+                        for (const enemy of gameState.enemies) {
+                            if (!enemy.alive) continue;
+                            if (aabbOverlap(proj, enemy)) {
+                                enemy.takeDamage(1);
+                                gameState.score += enemy.scoreValue || 100;
+                                proj.destroy();
+                                particleSystem.emit(proj.x, proj.y,
+                                    { count: 4, speed: 40, life: 0.2, color: '#ffa' });
+                                if (!enemy.alive) {
+                                    particleSystem.emit(enemy.x + enemy.width/2, enemy.y + enemy.height/2,
+                                        { count: 12, speed: 120, life: 0.6, color: '#f44', gravity: 200 });
+                                }
+                                break;
+                            }
+                        }
+                    } else {
+                        // Hit player
+                        if (player && player.alive && !player.isDashing && !player.invincible && aabbOverlap(proj, player)) {
+                            player.takeDamage(1);
+                            audio.playDamage();
+                            engine.camera.shake(4, 0.3);
+                            proj.destroy();
+                            particleSystem.emit(player.x + player.width/2, player.y + player.height/2,
+                                { count: 6, speed: 60, life: 0.3, color: '#4af', gravity: 100 });
+                        }
+                    }
+
+                    // Trail
+                    particleSystem.emit(proj.x + proj.width/2, proj.y + proj.height/2,
+                        { count: 1, speed: 10, life: 0.1, color: '#ffa', gravity: 0 });
+                }
+                gameState.projectiles = gameState.projectiles.filter(p => p.alive && p.timer < (p.lifetime || 2));
+
+                // ── Particles ──
+                particleSystem.update(dt);
+                parallax.update(engine.camera.x, engine.camera.y);
+                transition.update(dt);
+
+                // ── Burst visual effect ──
+                if (player.isBurstActive()) {
+                    // Apply slow to nearby enemies and projectiles
+                    for (const enemy of gameState.enemies) {
+                        const dist = Math.abs(enemy.x - player.x);
+                        if (dist < 240) enemy.body.maxSpeedX = 30;
+                    }
+                }
+
+                // ── Level complete check ──
+                if (gameState.levelComplete) {
+                    gameState.levelCompleteTimer += dt;
+                    if (gameState.levelCompleteTimer > 2) {
+                        gameState.levelIndex++;
+                        if (gameState.levelIndex >= LEVELS.length) {
+                            // Beat the game!
+                            engine.switchScene('gameover', { score: gameState.score, won: true });
+                        } else {
+                            setupLevel(gameState.levelIndex);
+                            saveGame();
+                        }
+                    }
+                } else {
+                    const exit = levelManager.getObjects('exit')[0];
+                    if (exit && player && player.alive) {
+                        const dist = Math.abs(player.x - exit.x) + Math.abs(player.y - exit.y);
+                        if (dist < 20) {
+                            gameState.levelComplete = true;
+                            gameState.levelCompleteTimer = 0;
+                            saveGame();
+                        }
+                    }
+                }
+            }
+
+            _playerDied() {
+                const player = gameState.player;
+                if (!player || !player.alive) return;
+                player.die();
+                gameState.totalDeaths++;
+                audio.playDeath();
+                engine.camera.shake(8, 0.4);
+                particleSystem.emit(player.x + player.width/2, player.y + player.height/2,
+                    { count: 20, speed: 120, life: 0.6, color: '#f44', gravity: 100 });
+            }
+
+            render(ctx) {
+                const cam = engine.camera.getPosition();
+                const vw = engine.baseWidth, vh = engine.baseHeight;
+                const tiles = levelManager.getCollisionLayer();
+                const tw = levelManager.levelData?.tileWidth || 16;
+                const th = levelManager.levelData?.tileHeight || 16;
+                const player = gameState.player;
+
+                // ── Parallax background ──
                 ctx.save();
+                ctx.translate(-cam.x, -cam.y);
+                parallax.render(ctx, vw, vh);
+                ctx.restore();
+
+                // ── Background tiles ──
+                const bgTiles = levelManager.getLayer('background');
+                if (bgTiles.length > 0) {
+                    drawColoredTilemap(ctx, bgTiles, levelManager.colorMap, cam.x, cam.y, vw, vh, tw, th);
+                }
+
+                // ── Foreground tiles ──
+                drawColoredTilemap(ctx, tiles, levelManager.colorMap, cam.x, cam.y, vw, vh, tw, th);
+
+                // ── Decorative tiles ──
+                const decTiles = levelManager.getLayer('decorative');
+                if (decTiles.length > 0) {
+                    drawColoredTilemap(ctx, decTiles, levelManager.colorMap, cam.x, cam.y, vw, vh, tw, th);
+                }
+
+                ctx.save();
+
+                // ── Collectibles ──
+                const colColors = { coin: '#ffdd44', gem: '#44ddff', star: '#ffaa00', heart: '#ff4466', shard: '#aa66ff' };
                 for (const item of gameState.collectibles) {
                     if (!item.alive) continue;
                     if (!engine.camera.isVisible(item.x, item.y, item.width, item.height)) continue;
-
-                    // Draw colored dot for collectible
-                    const colors = { coin: '#ff0', gem: '#0ff', heart: '#f44', star: '#fa0' };
-                    ctx.fillStyle = colors[item.collectibleType] || '#fff';
-                    ctx.beginPath();
-                    const cx = item.x + item.width / 2;
-                    const cy = item.y + item.height / 2;
-                    ctx.arc(cx, cy, item.width / 2, 0, Math.PI * 2);
-                    ctx.fill();
+                    const c = colColors[item.collectibleType] || '#fff';
+                    ctx.fillStyle = c;
+                    const cx = item.x + item.width / 2, cy = item.y + item.height / 2;
+                    if (item.collectibleType === 'coin') {
+                        ctx.fillRect(item.x, item.y, item.width, item.height);
+                        ctx.fillStyle = '#bba800';
+                        ctx.fillRect(item.x + 2, item.y + 2, 4, 4);
+                    } else if (item.collectibleType === 'gem') {
+                        ctx.beginPath();
+                        ctx.moveTo(cx, item.y); ctx.lineTo(item.x + item.width, cy);
+                        ctx.lineTo(cx, item.y + item.height); ctx.lineTo(item.x, cy);
+                        ctx.closePath(); ctx.fill();
+                    } else if (item.collectibleType === 'heart') {
+                        const s = item.width / 2;
+                        ctx.beginPath();
+                        ctx.moveTo(cx, cy + s * 0.3);
+                        ctx.bezierCurveTo(cx - s, cy - s * 0.5, cx - s * 1.3, cy + s * 0.3, cx, cy + s * 0.8);
+                        ctx.bezierCurveTo(cx + s * 1.3, cy + s * 0.3, cx + s, cy - s * 0.5, cx, cy + s * 0.3);
+                        ctx.fill();
+                    } else {
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, item.width / 2, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    // Sparkle
+                    if (item.sparkleFrame < 5) {
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(cx - 1, item.y - 1, 2, 2);
+                    }
                 }
-                ctx.restore();
 
                 // ── Enemies ──
-                ctx.save();
                 for (const enemy of gameState.enemies) {
                     if (!enemy.alive) continue;
                     if (!engine.camera.isVisible(enemy.x, enemy.y, enemy.width, enemy.height)) continue;
 
-                    ctx.fillStyle = '#a44';
+                    const flash = enemy.hitFlash > 0;
+                    ctx.fillStyle = flash ? '#fff' : (enemy instanceof ShooterEnemy ? '#a4a' : (enemy instanceof ChaserEnemy ? '#a84' : '#a44'));
                     ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
-                    ctx.strokeStyle = '#622';
-                    ctx.lineWidth = 1;
-                    ctx.strokeRect(enemy.x, enemy.y, enemy.width, enemy.height);
-                }
-                ctx.restore();
 
-                // ── Player (simple colored rectangle for now) ──
-                const player = gameState.player;
-                if (player && player.alive) {
-                    ctx.save();
-                    // Invincibility flash
-                    if (player.invincible && Math.floor(Date.now() / 80) % 2 === 0) {
-                        ctx.globalAlpha = 0.5;
+                    // Details
+                    if (enemy instanceof ChaserEnemy) {
+                        ctx.fillStyle = '#622';
+                        ctx.fillRect(enemy.x + 4, enemy.y - 2, 8, 4); // antennae
+                    } else if (enemy instanceof ShooterEnemy) {
+                        ctx.fillStyle = '#606';
+                        ctx.fillRect(enemy.x + 3, enemy.y + 6, 10, 4); // cannon
+                    } else {
+                        // Walker eyes
+                        ctx.fillStyle = '#ff0';
+                        const ex = enemy.flipX ? enemy.x + 3 : enemy.x + enemy.width - 5;
+                        ctx.fillRect(ex, enemy.y + 4, 2, 2);
+                        ctx.fillRect(ex + 3, enemy.y + 4, 2, 2);
                     }
-                    ctx.fillStyle = '#4af';
-                    ctx.fillRect(player.x, player.y, player.width, player.height);
-                    // Eye dot
-                    ctx.fillStyle = '#fff';
-                    const eyeX = player.flipX ? player.x + 2 : player.x + player.width - 4;
-                    ctx.fillRect(eyeX, player.y + 4, 2, 2);
-                    ctx.restore();
+                }
+
+                // ── Player ──
+                if (player && player.alive) {
+                    // Dash trail
+                    if (player.isDashing) {
+                        ctx.fillStyle = 'rgba(100,170,255,0.3)';
+                        ctx.fillRect(player.x - player.dashDir * 4, player.y, player.width, player.height);
+                        ctx.fillRect(player.x - player.dashDir * 8, player.y, player.width, player.height);
+                    }
+
+                    const flash = player.invincible && Math.floor(Date.now() / 80) % 2 === 0;
+                    if (!flash) {
+                        // Body
+                        ctx.fillStyle = player.isDashing ? '#8cf' : (player.slowActive ? '#4af' : (player.rushActive ? '#fa4' : '#4af'));
+                        ctx.fillRect(player.x, player.y, player.width, player.height);
+
+                        // Eyes
+                        ctx.fillStyle = '#fff';
+                        const ex = player.flipX ? player.x + 2 : player.x + player.width - 4;
+                        ctx.fillRect(ex, player.y + 3, 3, 3);
+                        ctx.fillStyle = '#000';
+                        ctx.fillRect(ex + (player.flipX ? 0 : 1), player.y + 4, 2, 1);
+
+                        // Attack arc
+                        if (player.comboStep > 0 && player.attackActiveFrames > 0) {
+                            const dir = player.flipX ? -1 : 1;
+                            ctx.strokeStyle = `rgba(255,255,100,${0.5 + player.attackActiveFrames / 12})`;
+                            ctx.lineWidth = 2;
+                            ctx.beginPath();
+                            const ax = dir > 0 ? player.x + player.width : player.x;
+                            const ay = player.y + player.height / 2;
+                            ctx.arc(ax, ay, 20, dir > 0 ? -0.8 : 1.8, dir > 0 ? 0.8 : 1.2);
+                            ctx.stroke();
+                        }
+                    }
                 } else if (player) {
-                    // Death animation — fading
                     ctx.save();
                     ctx.globalAlpha = Math.max(0, 1 - gameState.deathTimer / 2);
                     ctx.fillStyle = '#4af';
@@ -555,273 +786,325 @@
                 // ── Projectiles ──
                 for (const proj of gameState.projectiles) {
                     if (!proj.alive) continue;
-                    ctx.fillStyle = '#ff0';
-                    ctx.fillRect(proj.x, proj.y, proj.width, proj.height);
+                    if (!engine.camera.isVisible(proj.x, proj.y, 4, 4)) continue;
+                    ctx.fillStyle = proj.fromPlayer ? '#ff0' : '#f44';
+                    ctx.beginPath();
+                    ctx.arc(proj.x + 2, proj.y + 2, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = proj.fromPlayer ? '#ffa' : '#faa';
+                    ctx.beginPath();
+                    ctx.arc(proj.x + 2, proj.y + 2, 1.5, 0, Math.PI * 2);
+                    ctx.fill();
                 }
 
                 // ── Particles ──
                 drawParticles(ctx, particleSystem);
+
+                // ── Exit marker ──
+                const exit = levelManager.getObjects('exit')[0];
+                if (exit && !gameState.levelComplete) {
+                    ctx.fillStyle = 'rgba(0,255,100,0.3)';
+                    const pulse = Math.sin(Date.now() / 300) * 0.2 + 0.3;
+                    ctx.fillStyle = `rgba(0,255,100,${pulse})`;
+                    ctx.fillRect(exit.x - 4, exit.y - 4, 24, 24);
+                    ctx.strokeStyle = `rgba(0,255,100,${pulse + 0.2})`;
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(exit.x - 4, exit.y - 4, 24, 24);
+                }
+
+                ctx.restore();
             }
 
             renderHUD(ctx) {
                 const player = gameState.player;
                 if (!player) return;
+                const w = engine.baseWidth, h = engine.baseHeight;
 
-                const w = engine.baseWidth;
-
-                // Health bar
-                drawHealthBar(ctx, player.health, player.maxHealth, 20, 8, 60, 6);
-
-                // Score
-                drawScore(ctx, gameState.score, w / 2 - 30, 8);
-
-                // Lives
-                drawLives(ctx, gameState.lives, w - 40, 8, 3, 7);
-
-                // Controls hint (tiny)
-                ctx.fillStyle = 'rgba(255,255,255,0.3)';
-                ctx.font = '5px monospace';
-                ctx.fillText('Arrow keys: Move | Space: Jump | F: Shoot', 20, engine.baseHeight - 6);
-
-                // Transition overlay
-                transition.render(ctx, w, engine.baseHeight);
-            }
-
-            _shootProjectile() {
-                const player = gameState.player;
-                if (!player || !player.alive) return;
-
-                const dir = player.flipX ? -1 : 1;
-                const p = new Projectile(
-                    player.x + (dir > 0 ? player.width : 0),
-                    player.y + player.height / 2 - 2,
-                    dir, 0, 400
-                );
-                gameState.projectiles.push(p);
-                audio.playShoot();
-            }
-
-            _playerDied() {
-                const player = gameState.player;
-                if (!player || !player.alive) return;
-                player.die();
-                gameState.lives--;
-                audio.playDeath();
-                particleSystem.emit(
-                    player.x + player.width / 2,
-                    player.y + player.height / 2,
-                    { count: 20, speed: 120, life: 0.6, color: '#f44', gravity: 100 }
-                );
-            }
-
-            _respawn() {
-                const spawn = levelManager.getPlayerSpawn();
-                const player = gameState.player;
-                player.x = spawn.x;
-                player.y = spawn.y;
-                player.body.reset();
-                player.alive = true;
-                player.health = gameState.maxHealth;
-                player.state = 'idle';
-                player.invincible = true;
-                player.invincibleTimer = 1.5;
-                gameState.deathTimer = 0;
-
-                if (gameState.lives <= 0) {
-                    // Game over
-                    engine.switchScene('gameover', { score: gameState.score });
+                // ── Health as hearts ──
+                ctx.fillStyle = '#333';
+                ctx.fillRect(6, 4, 70, 12);
+                const heartSize = 7;
+                for (let i = 0; i < player.maxHealth; i++) {
+                    const hx = 10 + i * (heartSize + 2);
+                    const hy = 6;
+                    ctx.fillStyle = i < player.health ? '#f44' : '#444';
+                    ctx.beginPath();
+                    ctx.moveTo(hx, hy + heartSize * 0.3);
+                    ctx.bezierCurveTo(hx - heartSize * 0.5, hy - heartSize * 0.3, hx - heartSize * 0.7, hy + heartSize * 0.3, hx, hy + heartSize * 0.7);
+                    ctx.bezierCurveTo(hx + heartSize * 0.7, hy + heartSize * 0.3, hx + heartSize * 0.5, hy - heartSize * 0.3, hx, hy + heartSize * 0.3);
+                    ctx.fill();
                 }
-            }
 
-            _checkAABB(a, b) {
-                return (
-                    a.x < b.x + b.width &&
-                    a.x + a.width > b.x &&
-                    a.y < b.y + b.height &&
-                    a.y + a.height > b.y
-                );
+                // ── Score ──
+                ctx.fillStyle = '#ffd700';
+                ctx.font = '6px monospace';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'top';
+                ctx.fillText(`SCORE: ${gameState.score}`, 10, 18);
+
+                // ── Lives ──
+                ctx.fillStyle = '#aaa';
+                ctx.font = '6px monospace';
+                ctx.textAlign = 'right';
+                ctx.fillText(`LIVES: ${'♥'.repeat(gameState.lives)}`, w - 10, 4);
+
+                // ── Level name ──
+                ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                ctx.textAlign = 'center';
+                ctx.font = '6px monospace';
+                ctx.fillText(`${LEVEL_NAMES[gameState.levelIndex] || ''}`, w / 2, 4);
+
+                // ── Chrono Gauge ──
+                const gaugeW = 80, gaugeH = 6, gaugeX = w / 2 - gaugeW / 2, gaugeY = 16;
+                ctx.fillStyle = '#222';
+                ctx.fillRect(gaugeX, gaugeY, gaugeW, gaugeH);
+                const ratio = player.chronoGauge / player.chronoGaugeMax;
+                const grad = ctx.createLinearGradient(gaugeX, 0, gaugeX + gaugeW, 0);
+                grad.addColorStop(0, '#2266cc');
+                grad.addColorStop(0.5, '#44aaff');
+                grad.addColorStop(1, '#88ddff');
+                ctx.fillStyle = grad;
+                ctx.fillRect(gaugeX, gaugeY, gaugeW * ratio, gaugeH);
+                ctx.strokeStyle = '#446688';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(gaugeX, gaugeY, gaugeW, gaugeH);
+
+                // Active power indicator
+                if (player.activePower) {
+                    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                    ctx.font = '5px monospace';
+                    ctx.textAlign = 'center';
+                    const powerLabel = player.activePower === 'slow' ? 'SLOW FIELD' : 'TIME RUSH';
+                    ctx.fillText(`⚡ ${powerLabel}`, w / 2, gaugeY + gaugeH + 2);
+                }
+
+                // ── Controls ──
+                ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                ctx.font = '4px monospace';
+                ctx.textAlign = 'left';
+                ctx.fillText('J:ATK L:DASH K:POW', 4, h - 4);
+
+                // ── Level complete ──
+                if (gameState.levelComplete) {
+                    ctx.save();
+                    const alpha = Math.min(1, gameState.levelCompleteTimer / 0.5);
+                    ctx.fillStyle = `rgba(0,0,0,${alpha * 0.5})`;
+                    ctx.fillRect(0, 0, w, h);
+                    ctx.fillStyle = `rgba(100,255,100,${alpha})`;
+                    ctx.font = '14px monospace';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('LEVEL COMPLETE', w / 2, h / 2 - 10);
+                    ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+                    ctx.font = '7px monospace';
+                    ctx.fillText(`Score: ${gameState.score}`, w / 2, h / 2 + 10);
+                    ctx.restore();
+                }
+
+                // ── Transition overlay ──
+                transition.render(ctx, w, h);
             }
         }
 
+        // ═══════════════════════════════════════════════════════════════════
+        //  PAUSE SCENE
+        // ═══════════════════════════════════════════════════════════════════
 
-
-        // ═══════════════════════════════════════════════════════════════
-        //  Menu Scene
-        // ═══════════════════════════════════════════════════════════════
-
-        class MenuScene extends Scene {
+        class PauseScene extends Scene {
             constructor() {
                 super();
-                this.name = 'menu';
-                this.timer = 0;
-                this.blinkTimer = 0;
+                this.selectedOption = 0;
+                this.options = ['RESUME', 'RETRY', 'SAVE & QUIT'];
             }
 
             enter() {
-                this.timer = 0;
-                this.blinkTimer = 0;
-                audio.stopMusic();
+                this.selectedOption = 0;
             }
 
             update(dt) {
-                this.timer += dt;
-                this.blinkTimer += dt;
-
-                // Start game on any key
-                if (engine.input.anyPressed() || engine.input.justPressed('GAMEPAD_START')) {
-                    transition.start('fade', 'out', 0.5, () => {
-                        engine.switchScene('gameplay');
-                    });
+                const input = engine.input;
+                if (input.justPressed('Escape') || input.justPressed('KeyP') || input.justPressed('GAMEPAD_START')) {
+                    engine.switchScene('gameplay');
+                    return;
                 }
-
+                if (input.justPressed('ArrowDown') || input.justPressed('KeyS') || input.justPressed('DPAD_DOWN')) {
+                    this.selectedOption = (this.selectedOption + 1) % this.options.length;
+                }
+                if (input.justPressed('ArrowUp') || input.justPressed('KeyW') || input.justPressed('DPAD_UP')) {
+                    this.selectedOption = (this.selectedOption - 1 + this.options.length) % this.options.length;
+                }
+                if (input.justPressed('Enter') || input.justPressed('Space') || input.justPressed('GAMEPAD_A')) {
+                    const opt = this.options[this.selectedOption];
+                    if (opt === 'RESUME') {
+                        engine.switchScene('gameplay');
+                    } else if (opt === 'RETRY') {
+                        transition.start('fade', 'out', 0.5, () => {
+                            setupLevel(gameState.levelIndex);
+                            engine.switchScene('gameplay');
+                        });
+                    } else if (opt === 'SAVE & QUIT') {
+                        saveGame();
+                        transition.start('fade', 'out', 0.5, () => engine.switchScene('menu'));
+                    }
+                }
                 transition.update(dt);
             }
 
             render(ctx) {
-                const w = engine.baseWidth;
-                const h = engine.baseHeight;
-
-                // Background
-                ctx.fillStyle = '#0a0a1e';
+                const w = engine.baseWidth, h = engine.baseHeight;
+                ctx.fillStyle = 'rgba(0,0,0,0.6)';
                 ctx.fillRect(0, 0, w, h);
 
-                // Stars
-                for (let i = 0; i < 40; i++) {
-                    const sx = (i * 37 + 13) % w;
-                    const sy = (i * 71 + 29) % h;
-                    const brightness = Math.sin(this.timer * 2 + i) * 0.3 + 0.7;
-                    ctx.fillStyle = `rgba(255,255,255,${brightness * 0.5})`;
-                    ctx.fillRect(sx, sy, 2, 2);
-                }
-
-                // Title
-                ctx.fillStyle = '#6af';
-                ctx.font = '16px monospace';
+                ctx.fillStyle = '#ccc';
+                ctx.font = '12px monospace';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText('STEAM PLATFORMER', w / 2, h / 3 - 10);
+                ctx.fillText('PAUSED', w / 2, h / 3);
 
-                // Subtitle
-                ctx.fillStyle = '#48a';
-                ctx.font = '7px monospace';
-                ctx.fillText('A Game Engine Demo', w / 2, h / 3 + 14);
-
-                // Blinking prompt
-                if (Math.floor(this.blinkTimer * 2) % 2 === 0) {
-                    ctx.fillStyle = '#ccc';
-                    ctx.font = '8px monospace';
-                    ctx.fillText('PRESS ANY KEY TO START', w / 2, h * 0.65);
+                ctx.font = '8px monospace';
+                for (let i = 0; i < this.options.length; i++) {
+                    ctx.fillStyle = i === this.selectedOption ? '#6af' : '#888';
+                    ctx.fillText(this.options[i], w / 2, h / 2 + i * 16);
                 }
-
-                // Controls
-                ctx.fillStyle = '#666';
-                ctx.font = '5px monospace';
-                ctx.fillText('← → A / D : Move    SPACE / W : Jump    F : Shoot', w / 2, h * 0.78);
-                ctx.fillText('Gamepad supported', w / 2, h * 0.84);
-
                 transition.render(ctx, w, h);
             }
-
-            renderHUD(ctx) {
-                // No HUD for menu
-            }
+            renderHUD(ctx) {}
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        //  Game Over Scene
-        // ═══════════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════════════
+        //  GAME OVER SCENE
+        // ═══════════════════════════════════════════════════════════════════
 
         class GameOverScene extends Scene {
             constructor() {
                 super();
-                this.name = 'gameover';
                 this.score = 0;
                 this.timer = 0;
+                this.won = false;
+                this.selectedOption = 0;
+                this.options = ['RETRY', 'MAIN MENU'];
             }
 
             enter(data) {
                 this.score = data?.score || 0;
+                this.won = data?.won || false;
                 this.timer = 0;
+                this.selectedOption = 0;
                 audio.stopMusic();
             }
 
             update(dt) {
                 this.timer += dt;
+                const input = engine.input;
 
-                if (this.timer > 1 && (engine.input.anyPressed() || engine.input.justPressed('GAMEPAD_START'))) {
-                    transition.start('fade', 'out', 0.5, () => {
-                        engine.switchScene('menu');
-                    });
+                if (this.timer > 1.5) {
+                    if (input.justPressed('ArrowDown') || input.justPressed('KeyS') || input.justPressed('DPAD_DOWN')) {
+                        this.selectedOption = (this.selectedOption + 1) % this.options.length;
+                    }
+                    if (input.justPressed('ArrowUp') || input.justPressed('KeyW') || input.justPressed('DPAD_UP')) {
+                        this.selectedOption = (this.selectedOption - 1 + this.options.length) % this.options.length;
+                    }
+                    if (input.justPressed('Enter') || input.justPressed('Space') || input.justPressed('GAMEPAD_A')) {
+                        const opt = this.options[this.selectedOption];
+                        if (opt === 'RETRY') {
+                            gameState.levelIndex = Math.max(0, gameState.levelIndex);
+                            gameState.lives = Math.max(1, gameState.lives);
+                            transition.start('fade', 'out', 0.5, () => engine.switchScene('gameplay'));
+                        } else {
+                            transition.start('fade', 'out', 0.5, () => engine.switchScene('menu'));
+                        }
+                    }
                 }
-
                 transition.update(dt);
             }
 
             render(ctx) {
-                const w = engine.baseWidth;
-                const h = engine.baseHeight;
-
-                ctx.fillStyle = '#1a0a0a';
+                const w = engine.baseWidth, h = engine.baseHeight;
+                ctx.fillStyle = this.won ? '#0a1a0a' : '#1a0a0a';
                 ctx.fillRect(0, 0, w, h);
 
-                ctx.fillStyle = '#a44';
-                ctx.font = '16px monospace';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText('GAME OVER', w / 2, h / 3 - 6);
-
-                ctx.fillStyle = '#ccc';
-                ctx.font = '7px monospace';
-                ctx.fillText(`Score: ${this.score}`, w / 2, h / 2 - 6);
-
-                if (this.timer > 1 && Math.floor(this.timer) % 2 === 0) {
-                    ctx.fillStyle = '#888';
-                    ctx.font = '7px monospace';
-                    ctx.fillText('PRESS ANY KEY', w / 2, h * 0.65);
+                // Particles / stars
+                for (let i = 0; i < 30; i++) {
+                    const sx = (i * 47 + 7) % w;
+                    const sy = (i * 83 + 19) % h;
+                    ctx.fillStyle = `rgba(255,255,255,${Math.sin(this.timer + i) * 0.2 + 0.3})`;
+                    ctx.fillRect(sx, sy, 2, 2);
                 }
+
+                if (this.won) {
+                    ctx.fillStyle = '#4fa';
+                    ctx.font = '16px monospace';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('YOU WIN!', w / 2, h / 3 - 8);
+                    ctx.fillStyle = '#afa';
+                    ctx.font = '7px monospace';
+                    ctx.fillText('The timestream is restored.', w / 2, h / 3 + 10);
+                } else {
+                    ctx.fillStyle = '#a44';
+                    ctx.font = '16px monospace';
+                    ctx.fillText('TIME RAN OUT', w / 2, h / 3 - 8);
+                    ctx.fillStyle = '#ccc';
+                    ctx.font = '7px monospace';
+                    ctx.fillText('Your journey ends here... for now.', w / 2, h / 3 + 10);
+                }
+
+                ctx.fillStyle = '#ffd700';
+                ctx.font = '8px monospace';
+                ctx.fillText(`Score: ${this.score}`, w / 2, h * 0.48);
+
+                ctx.fillStyle = '#888';
+                ctx.font = '6px monospace';
+                ctx.fillText(`Deaths: ${gameState.totalDeaths}`, w / 2, h * 0.54);
+
+                if (this.timer > 1.5) {
+                    for (let i = 0; i < this.options.length; i++) {
+                        ctx.fillStyle = i === this.selectedOption ? '#6af' : '#888';
+                        ctx.font = i === this.selectedOption ? '8px monospace' : '7px monospace';
+                        ctx.fillText(this.options[i], w / 2, h * 0.62 + i * 16);
+                    }
+                }
+
+                ctx.fillStyle = '#555';
+                ctx.font = '5px monospace';
+                ctx.fillText('A game by... you! Thanks for playing Chronos Edge.', w / 2, h * 0.88);
 
                 transition.render(ctx, w, h);
             }
-
             renderHUD(ctx) {}
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        //  Register Scenes & Start
-        // ═══════════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════════════
+        //  Register & Start
+        // ═══════════════════════════════════════════════════════════════════
 
         engine.addScene('menu', new MenuScene());
         engine.addScene('gameplay', new GameplayScene());
+        engine.addScene('pause', new PauseScene());
         engine.addScene('gameover', new GameOverScene());
 
-        // Hide loading screen and start
         engine.switchScene('menu');
 
-        // Simulate asset loading progress
+        // Loading screen
         let loadProgress = 0;
         const loadInterval = setInterval(() => {
-            loadProgress += 0.1;
+            loadProgress += 0.12;
             loadingBar.style.width = `${Math.min(100, loadProgress * 100)}%`;
             loadingText.textContent = `Loading... ${Math.floor(loadProgress * 100)}%`;
-
             if (loadProgress >= 1) {
                 clearInterval(loadInterval);
                 loadingScreen.classList.add('hidden');
                 engine.start();
             }
-        }, 100);
+        }, 80);
 
-        // Also start level transition with fade-in
-        setTimeout(() => {
-            transition.start('fade', 'in', 1.0);
-        }, 1200);
+        setTimeout(() => { transition.start('fade', 'in', 0.8); }, 1000);
 
-        console.log('✦ Platformer Engine v1.0 — Ready');
-        console.log('  Base resolution: 320×180');
-        console.log('  Canvas size:', canvas.width, '×', canvas.height);
-        console.log('  Audio: Web Audio API');
+        console.log('✦ CHRONOS EDGE v1.0 — Ready');
+        console.log('  Base: 320×180 | Levels:', LEVELS.length);
+        console.log('  Controls: WASD/Arrows, Space=Jump, J=Attack, L=Dash, K=Power, Esc=Pause');
+        console.log('  Save/Load: localStorage');
 
-        // Expose for debugging
         window.__engine = engine;
         window.__audio = audio;
         window.__game = gameState;
