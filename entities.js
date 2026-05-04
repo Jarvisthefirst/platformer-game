@@ -467,6 +467,7 @@ export class Enemy extends Entity {
         this.spawnX = x;
         this.patrolRange = 60;
         this.detectRange = 120;
+        this.patrolRangeY = 0; // vertical patrol tolerance
         this.aggro = false;
         this.aggroTimer = 0;
         this.health = 2;

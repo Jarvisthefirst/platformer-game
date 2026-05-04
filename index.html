@@ -179,7 +179,11 @@
             }
             engine.camera.follow(gameState.player, 0.08);
 
-            gameState.enemies = levelManager.getObjects('enemies').map(e => spawnEnemy(e.type, e.x, e.y));
+            gameState.enemies = levelManager.getObjects('enemies').map(e => {
+                const en = spawnEnemy(e.type, e.x, e.y);
+                en.setTileGrid(tiles, tw, th);
+                return en;
+            });
             gameState.collectibles = levelManager.getObjects('collectibles').map(c => spawnCollectible(c.type, c.x, c.y));
             gameState.projectiles = [];
             gameState.deathTimer = 0;
@@ -232,6 +236,7 @@
                 this.confirmStart = 0;
                 this.options = ['NEW GAME'];
                 if (hasSave()) this.options.push('CONTINUE');
+                this.options.push('HOW TO PLAY');
                 this.options.push('CREDITS');
                 audio.stopMusic();
             }
@@ -262,9 +267,12 @@
                         }
                     } else if (opt === 'CONTINUE') {
                         transition.start('fade', 'out', 0.6, () => engine.switchScene('gameplay'));
-                    } else if (opt === 'CREDITS') {
-                        // Just a toggle
-                        this.options[this.selectedOption] = '← MADE WITH ♥ →';
+                    } else if (opt === 'HOW TO PLAY' || opt.startsWith('ARROWS/WASD')) {
+                        if (opt.startsWith('ARROWS/WASD')) {
+                            this.options[this.selectedOption] = 'HOW TO PLAY';
+                        } else {
+                            this.options[this.selectedOption] = 'ARROWS/WASD: Move | SPACE: Jump | J: Attack | L: Dash | K: Power | ESC: Pause';
+                        }
                     }
                 }
 
@@ -348,9 +356,17 @@
                     gameState.totalDeaths = save.totalDeaths || 0;
                 }
                 setupLevel(gameState.levelIndex);
+                // Set tile grid on player for internal collision
+                const _setTw = levelManager.levelData?.tileWidth || 16;
+                const _setTh = levelManager.levelData?.tileHeight || 16;
+                const _setTiles = levelManager.getCollisionLayer();
+                if (gameState.player) {
+                    gameState.player.setTileGrid(_setTiles, _setTw, _setTh);
+                }
                 transition.start('fade', 'in', 0.5);
                 audio.startMusic();
                 this.enemyShootTimer = 0;
+                this._playerWasAirborne = false;
             }
 
             update(dt) {
@@ -413,6 +429,14 @@
                             engine.camera.shake(4, 0.3);
                         }
                     }
+
+                // Landing detection
+                if (player.body.onGround && this._playerWasAirborne && player.alive) {
+                    particleSystem.emit(player.x + player.width / 2, player.y + player.height,
+                        { count: 4, speed: 30, life: 0.25, color: '#887766', gravity: 60 });
+                    audio.playLand();
+                }
+                this._playerWasAirborne = !player.body.onGround;
 
                     // Footstep particles
                     if (player.body.onGround && Math.abs(player.body.vx) > 40 && Math.random() < 0.3) {
@@ -501,6 +525,7 @@
                             const proj = new Projectile(spawn.x, spawn.y, dx/len, dy/len, 250);
                             proj.fromPlayer = false;
                             proj.tags.push('enemy_projectile');
+                            proj.setTileGrid(tiles, tw, th);
                             gameState.projectiles.push(proj);
                             enemy.resetShootTimer();
                         }
@@ -1078,7 +1103,12 @@
         //  Register & Start
         // ═══════════════════════════════════════════════════════════════════
 
-        engine.addScene('menu', new MenuScene());
+        
+        // Initialize audio on first user interaction
+        document.addEventListener('keydown', () => audio.init(), { once: true });
+        document.addEventListener('click', () => audio.init(), { once: true });
+        document.addEventListener('touchstart', () => audio.init(), { once: true });
+engine.addScene('menu', new MenuScene());
         engine.addScene('gameplay', new GameplayScene());
         engine.addScene('pause', new PauseScene());
         engine.addScene('gameover', new GameOverScene());

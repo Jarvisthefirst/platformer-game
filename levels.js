@@ -17,7 +17,7 @@ export class LevelManager {
     constructor() {
         this.currentLevel = null;
         this.levelData = null;
-        this.solidTiles = new Set([1, 2, 3, 6]);
+        this.solidTiles = new Set([1, 2, 3, 5, 6]);
         this.oneWayTiles = new Set([4]);
         this.hazardTiles = new Set([5]);
         this.colorMap = {
@@ -113,10 +113,10 @@ export function getLevel1() {
     for (let c = 20; c <= 22; c++) { fg[16][c] = 1; fg[17][c] = 1; }
 
     // ── Section 4: Spike pit at cols 30-32 ──
+    // Remove ground top layer at pit
     fg[18][30] = 0; fg[18][31] = 0; fg[18][32] = 0;
-    fg[19][30] = 0; fg[19][31] = 0; fg[19][32] = 0;
-    // Spikes in pit
-    fg[18][30] = 5; fg[18][31] = 5; fg[18][32] = 5;
+    // Spikes at pit bottom (row 19)
+    fg[19][30] = 5; fg[19][31] = 5; fg[19][32] = 5;
 
     // Narrow platforms over pit
     fg[16][30] = 1; fg[16][32] = 1;
@@ -148,19 +148,23 @@ export function getLevel1() {
     const objects = {
         player_spawn: { x: 40, y: 16 * 17 },
         enemies: [
-            { type: 'walker', x: 280, y: 16 * 17 },
-            { type: 'walker', x: 500, y: 16 * 17 },
+            { type: 'walker', x: 160, y: 16 * 17 },
+            { type: 'walker', x: 360, y: 16 * 13 },
+            { type: 'chaser', x: 660, y: 16 * 16 },
         ],
         collectibles: [
+            { type: 'coin', x: 100, y: 16 * 15 },
+            { type: 'coin', x: 160, y: 16 * 13 },
             { type: 'coin', x: 200, y: 16 * 14 },
             { type: 'coin', x: 216, y: 16 * 14 },
             { type: 'coin', x: 232, y: 16 * 14 },
-            { type: 'gem', x: 400, y: 16 * 12 - 8 },
-            { type: 'coin', x: 600, y: 16 * 12 - 8 },
-            { type: 'coin', x: 616, y: 16 * 12 - 8 },
-            { type: 'heart', x: 750, y: 16 * 16 },
+            { type: 'gem', x: 400, y: 16 * 11 },
+            { type: 'coin', x: 580, y: 16 * 11 },
+            { type: 'coin', x: 596, y: 16 * 11 },
+            { type: 'heart', x: 720, y: 16 * 16 },
+            { type: 'gem', x: 768, y: 16 * 15 },
         ],
-        exit: { x: 780, y: 16 * 16 },
+        exit: { x: 795, y: 16 * 16 },
     };
 
     return {
