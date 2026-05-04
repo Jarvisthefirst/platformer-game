@@ -39,7 +39,7 @@
     <script type="module">
         import { Engine, Scene } from './engine.js';
         import { PHYSICS, applyPhysics, moveAndCollide, aabbOverlap } from './physics.js';
-        import { Player, Enemy, ChaserEnemy, ShooterEnemy, Collectible, Projectile, ParticleSystem } from './entities.js';
+        import { Player, Enemy, ChaserEnemy, ShooterEnemy, Collectible, Projectile, ParticleSystem, EchoEntity } from './entities.js';
         import { drawColoredTilemap, drawParticles, drawHealthBar, ParallaxBackground, Transition } from './renderer.js';
         import { LevelManager, LEVELS, LEVEL_NAMES } from './levels.js';
         import { AudioManager } from './audio.js';
@@ -76,6 +76,7 @@
             enemies: [],
             collectibles: [],
             projectiles: [],
+            echoes: [],
             score: 0,
             lives: 3,
             levelIndex: 0,
@@ -185,6 +186,7 @@
             });
             gameState.collectibles = levelManager.getObjects('collectibles').map(c => spawnCollectible(c.type, c.x, c.y));
             gameState.projectiles = [];
+            gameState.echoes = [];
             gameState.deathTimer = 0;
             gameState.levelComplete = false;
             gameState.levelCompleteTimer = 0;
@@ -359,6 +361,7 @@
                 audio.startMusic();
                 this.enemyShootTimer = 0;
                 this._playerWasAirborne = false;
+                this._prevPlayerGrounded = true;
             }
 
             update(dt) {
@@ -392,13 +395,32 @@
                 if (input.justPressed('KeyJ') || input.isDown('GAMEPAD_B') || input.justPressed('KeyZ')) pInput.attack = true;
                 if (input.justPressed('KeyK') || input.isDown('GAMEPAD_Y') || input.justPressed('ShiftLeft') || input.justPressed('ShiftRight')) pInput.power = true;
 
-                // ── Time powers (keys 2/3) ──
+                // ── Time powers (keys 1-5) ──
                 if (player.alive) {
+                    if (input.justPressed('Digit1') || input.justPressed('Numpad1')) {
+                        pInput.power = true;
+                    }
                     if (input.justPressed('Digit2') || input.justPressed('Numpad2')) {
                         player.toggleSlowField();
                     }
                     if (input.justPressed('Digit3') || input.justPressed('Numpad3')) {
                         player.toggleTimeRush();
+                    }
+                    if (input.justPressed('Digit4') || input.justPressed('Numpad4')) {
+                        if (player.activateRewind()) {
+                            particleSystem.emit(player.x + player.width/2, player.y + player.height/2,
+                                { count: 16, speed: 100, life: 0.5, color: '#44ffff', gravity: 0 });
+                            engine.camera.shake(4, 0.2);
+                        }
+                    }
+                    if (input.justPressed('Digit5') || input.justPressed('Numpad5')) {
+                        const history = player.activateEcho();
+                        if (history) {
+                            const echo = new EchoEntity(player.x, player.y, history);
+                            gameState.echoes.push(echo);
+                            particleSystem.emit(player.x + player.width/2, player.y + player.height/2,
+                                { count: 12, speed: 80, life: 0.4, color: '#ff44ff', gravity: 0 });
+                        }
                     }
                 }
 
@@ -407,8 +429,13 @@
 
                 // ── Update player ──
                 if (player.alive) {
+                    const wasGrounded = player.body.onGround;
                     player.setInput(pInput);
                     player.update(dt);
+                    // Jump sound
+                    if (!player.body.onGround && wasGrounded && pInput.jump) {
+                        audio.playJump();
+                    }
 
                     const tiles = levelManager.getCollisionLayer();
                     const tw = levelManager.levelData?.tileWidth || 16;
@@ -569,6 +596,11 @@
                         } else if (item.collectibleType === 'shard') {
                             gameState.score += points;
                             player.chronoGaugeMax = Math.min(12, player.chronoGaugeMax + 0.5);
+                        } else if (item.collectibleType === 'double_jump') {
+                            player.canDoubleJump = true;
+                            player.maxJumps = 2;
+                            player.jumpsLeft = 2;
+                            gameState.score += points;
                         } else {
                             gameState.score += points;
                         }
@@ -630,14 +662,47 @@
                 parallax.update(engine.camera.x, engine.camera.y);
                 transition.update(dt);
 
-                // ── Burst visual effect ──
+                // ── Time power effects on enemies ──
+                // Slow field: slow ALL enemies by 50%
+                if (player.slowActive) {
+                    for (const enemy of gameState.enemies) {
+                        enemy.body.maxSpeedX = (enemy.constructor.prototype.body?.maxSpeedX || 60) * 0.5;
+                        if (enemy.body.maxSpeedX < 10) enemy.body.maxSpeedX = 10;
+                    }
+                }
+                // Time rush: enemies at 50% speed
+                if (player.rushActive) {
+                    for (const enemy of gameState.enemies) {
+                        enemy.body.maxSpeedX = (enemy.constructor.prototype.body?.maxSpeedX || 60) * 0.5;
+                        if (enemy.body.maxSpeedX < 10) enemy.body.maxSpeedX = 10;
+                    }
+                }
+                // Burst: slow nearby enemies
                 if (player.isBurstActive()) {
-                    // Apply slow to nearby enemies and projectiles
                     for (const enemy of gameState.enemies) {
                         const dist = Math.abs(enemy.x - player.x);
                         if (dist < 240) enemy.body.maxSpeedX = 30;
                     }
                 }
+
+                // ── Echo entities ──
+                for (const echo of gameState.echoes) {
+                    if (!echo.alive) continue;
+                    echo.setTileGrid(tiles, tw, th);
+                    echo.update(dt);
+                    // Echo damages enemies on contact
+                    for (const enemy of gameState.enemies) {
+                        if (!enemy.alive || echo.dealtDamage.has(enemy)) continue;
+                        if (aabbOverlap(echo, enemy)) {
+                            enemy.takeDamage(1);
+                            echo.dealtDamage.add(enemy);
+                            gameState.score += enemy.scoreValue || 100;
+                            particleSystem.emit(enemy.x + enemy.width/2, enemy.y + enemy.height/2,
+                                { count: 6, speed: 60, life: 0.3, color: '#f4f', gravity: 200 });
+                        }
+                    }
+                }
+                gameState.echoes = gameState.echoes.filter(e => e.alive);
 
                 // ── Level complete check ──
                 if (gameState.levelComplete) {
@@ -659,6 +724,7 @@
                         if (dist < 20) {
                             gameState.levelComplete = true;
                             gameState.levelCompleteTimer = 0;
+                            audio.playCollect(); // level complete chime
                             saveGame();
                         }
                     }
@@ -820,6 +886,15 @@
                     ctx.beginPath();
                     ctx.arc(proj.x + 2, proj.y + 2, 1.5, 0, Math.PI * 2);
                     ctx.fill();
+                }
+
+                // ── Echo entities ──
+                for (const echo of gameState.echoes) {
+                    if (!echo.alive) continue;
+                    ctx.fillStyle = 'rgba(200,100,255,0.5)';
+                    ctx.fillRect(echo.x, echo.y, echo.width, echo.height);
+                    ctx.fillStyle = 'rgba(255,200,255,0.3)';
+                    ctx.fillRect(echo.x + 2, echo.y + 2, echo.width - 4, echo.height - 4);
                 }
 
                 // ── Particles ──

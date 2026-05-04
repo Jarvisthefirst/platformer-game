@@ -75,8 +75,9 @@ export class Player extends Entity {
         this.jumpBufferTimer = 0;
         this.jumpHoldTimer = 0;
         this.jumpHoldTimeMax = 0.2;
-        this.jumpsLeft = 2;
-        this.maxJumps = 2;
+        this.jumpsLeft = 1;
+        this.maxJumps = 1;
+        this.canDoubleJump = false;
         this.wallJumpCooldown = 0;
         this.canWallJump = true;
 
@@ -85,7 +86,7 @@ export class Player extends Entity {
         this.isDashing = false;
         this.dashTimer = 0;
         this.dashDuration = 0.15;
-        this.dashSpeed = 1200;
+        this.dashSpeed = 2000;
         this.dashCooldown = 0.35;
         this.dashCDTimer = 0;
         this.dashDir = 1;
@@ -122,13 +123,22 @@ export class Player extends Entity {
         this.chronoRechargeRate = 0.666; // seconds of gauge per real second
 
         // Time powers
-        this.unlockedPowers = ['burst', 'slow', 'rush'];
+        this.unlockedPowers = ['burst', 'slow', 'rush', 'rewind', 'echo'];
         this.activePower = null; // null, 'slow', 'rush'
         this.burstTimer = 0;
-        this.burstDuration = 0.5;
+        this.burstDuration = 0.3;
         this.burstCooldown = 0;
         this.slowActive = false;
         this.rushActive = false;
+
+        // ── Rewind ──
+        this.positionHistory = new Array(180); // 3 seconds at 60fps
+        this.historyIndex = 0;
+        this.historyFull = false;
+
+        // ── Echo recording ──
+        this.inputHistory = [];
+        this.maxInputHistory = 120; // 2 seconds at 60fps
 
         // ── Visual ──
         this.footstepTimer = 0;
@@ -136,6 +146,7 @@ export class Player extends Entity {
 
         // ── Movement stats (for camera look-ahead) ──
         this.lastGroundedY = y;
+        this._prevOnGround = true;
     }
 
     setInput(input) {
@@ -172,18 +183,18 @@ export class Player extends Entity {
             this.chronoGauge = Math.min(this.chronoGaugeMax, this.chronoGauge + this.chronoRechargeRate * dt);
         }
 
-        // ── Slow field drain ──
+        // ── Slow field drain (1 bar/sec) ──
         if (this.slowActive && this.chronoGauge > 0) {
-            this.chronoGauge -= 2.0 * dt;
+            this.chronoGauge -= 1.0 * dt;
             if (this.chronoGauge <= 0) {
                 this.slowActive = false;
                 this.activePower = null;
             }
         }
 
-        // ── Time rush drain ──
+        // ── Time rush drain (1.5 bars/sec) ──
         if (this.rushActive && this.chronoGauge > 0) {
-            this.chronoGauge -= 1.0 * dt;
+            this.chronoGauge -= 1.5 * dt;
             if (this.chronoGauge <= 0) {
                 this.rushActive = false;
                 this.activePower = null;
@@ -243,14 +254,17 @@ export class Player extends Entity {
         }
 
         // ── Horizontal movement ──
-        const speed = this.rushActive ? 400 : 200;
+        let baseSpeed = 200;
+        if (this.rushActive) baseSpeed = 400;
+        if (this.burstTimer > 0) baseSpeed = 600; // 3x normal speed (200 * 3 = 600)
+        const speed = baseSpeed;
         this.body.maxSpeedX = speed;
         const accel = speed / 0.08; // Reach max speed in ~80ms
         this.body.ax = this.moveInput.x * accel;
 
         // ── Jump execution ──
         const canCoyoteJump = this.coyoteTimer > 0 && this.jumpsLeft > 0;
-        const canAirJump = !this.body.onGround && this.jumpsLeft > 1;
+        const canAirJump = !this.body.onGround && this.jumpsLeft >= 1 && this.canDoubleJump;
 
         if (this.jumpBufferTimer > 0 && (canCoyoteJump || canAirJump || this.body.onWallLeft || this.body.onWallRight)) {
             if ((this.body.onWallLeft || this.body.onWallRight) && this.wallJumpCooldown <= 0) {
@@ -300,7 +314,7 @@ export class Player extends Entity {
         }
 
         // ── Time power ──
-        if (this.moveInput.power && this.chronoGauge >= 0.5 && this.burstCooldown <= 0 && this.burstTimer <= 0) {
+        if (this.moveInput.power && this.chronoGauge >= 2.0 && this.burstCooldown <= 0 && this.burstTimer <= 0) {
             this._activateTimePower();
         }
 
@@ -333,9 +347,18 @@ export class Player extends Entity {
             this.animFrame = (this.animFrame + 1) % 4;
         }
 
+        // ── Record position history (for rewind) ──
+        this._recordPosition();
+
+        // ── Record input history (for echo) ──
+        this._recordInput();
+
         // ── Facing ──
         if (this.moveInput.x > 0) this.flipX = false;
         if (this.moveInput.x < 0) this.flipX = true;
+
+        // ── Ground state tracking ──
+        this._prevOnGround = this.body.onGround;
 
         // ── Footsteps ──
         this.footstepTimer += dt;
@@ -378,10 +401,10 @@ export class Player extends Entity {
     }
 
     _activateTimePower() {
-        if (this.unlockedPowers.includes('burst') && this.chronoGauge >= 0.5 && this.burstCooldown <= 0) {
-            // Chrono Burst
-            this.chronoGauge -= 0.5;
-            this.burstTimer = this.burstDuration;
+        if (this.unlockedPowers.includes('burst') && this.chronoGauge >= 2.0 && this.burstCooldown <= 0) {
+            // Chrono Burst — multiply player speed by 3 for 0.3s
+            this.chronoGauge -= 2.0;
+            this.burstTimer = 0.3;
             this.burstCooldown = 1.0;
             this.chronoRechargeTimer = this.chronoRechargeDelay;
         }
@@ -421,6 +444,74 @@ export class Player extends Entity {
         this.activePower = 'rush';
         this.chronoRechargeTimer = 0.5;
         return true;
+    }
+
+    // ── Position recording (for rewind) ──
+
+    _recordPosition() {
+        this.positionHistory[this.historyIndex] = { x: this.x, y: this.y };
+        this.historyIndex = (this.historyIndex + 1) % this.positionHistory.length;
+        if (this.historyIndex === 0) this.historyFull = true;
+    }
+
+    /**
+     * Rewind — restore position to 3 seconds ago. Cost 3 bars.
+     */
+    activateRewind() {
+        if (!this.unlockedPowers.includes('rewind')) return false;
+        if (this.chronoGauge < 3.0) return false;
+        const lookback = Math.min(180, this.historyFull ? 180 : this.historyIndex);
+        if (lookback < 2) return false;
+        let idx = this.historyIndex - lookback;
+        if (idx < 0) {
+            if (this.historyFull) {
+                idx += this.positionHistory.length;
+            } else {
+                return false;
+            }
+        }
+        const pos = this.positionHistory[idx];
+        if (!pos) return false;
+        this.chronoGauge -= 3.0;
+        this.chronoRechargeTimer = this.chronoRechargeDelay;
+        this.x = pos.x;
+        this.y = pos.y;
+        this.body.vx = 0;
+        this.body.vy = 0;
+        this.body.gravityScale = 1;
+        this.invincible = true;
+        this.invincibleTimer = 0.3;
+        return true;
+    }
+
+    // ── Input recording (for echo) ──
+
+    _recordInput() {
+        this.inputHistory.push({
+            x: this.moveInput.x,
+            jump: this.moveInput.jump,
+            jumpHeld: this.moveInput.jumpHeld,
+            dash: this.moveInput.dash,
+            attack: this.moveInput.attack,
+            power: this.moveInput.power,
+        });
+        if (this.inputHistory.length > this.maxInputHistory) {
+            this.inputHistory.shift();
+        }
+    }
+
+    /**
+     * Echo — get recorded input history for last 2 seconds. Cost 4 bars.
+     * Returns input history or null if insufficient gauge.
+     */
+    activateEcho() {
+        if (!this.unlockedPowers.includes('echo')) return false;
+        if (this.chronoGauge < 4.0) return false;
+        if (this.inputHistory.length < 30) return null; // Need at least 30 frames
+        this.chronoGauge -= 4.0;
+        this.chronoRechargeTimer = this.chronoRechargeDelay;
+        // Return a copy of the input history for the scene to use
+        return this.inputHistory.slice();
     }
 
     isBurstActive() {
@@ -729,6 +820,52 @@ export class Projectile extends Entity {
 
     onCollide(other) {
         if (other.tags.includes('solid')) this.destroy();
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  Echo Entity — replays recorded player input
+// ═══════════════════════════════════════════════════════════
+
+export class EchoEntity extends Entity {
+    constructor(x, y, inputHistory) {
+        super(x, y, 14, 16);
+        this.tags.push('echo', 'ally');
+        this.inputHistory = inputHistory; // Array of input frames
+        this.currentFrame = 0;
+        this.body.gravityScale = 1;
+        this.lifetime = inputHistory.length / 60;
+        this.timer = 0;
+        this.alpha = 0.7;
+        this.zIndex = 5;
+        this.dealtDamage = new Set(); // Track enemies hit
+    }
+
+    update(dt) {
+        this.timer += dt;
+        this.currentFrame = Math.floor(this.timer * 60);
+        if (this.currentFrame >= this.inputHistory.length) {
+            this.destroy();
+            return;
+        }
+        // Simulate simple movement based on recorded input
+        const input = this.inputHistory[this.currentFrame];
+        if (this.tiles) {
+            this.body.vx = (input.x || 0) * 200;
+            applyPhysics(this.body, dt);
+            moveAndCollide(this, dt, this.tiles, this.tileW, this.tileH, id => id >= 1, id => id === 2);
+        } else {
+            this.x += (input.x || 0) * 200 * dt;
+        }
+        this.flipX = (input.x || 0) < 0;
+    }
+
+    getCenter() {
+        return { x: this.x + this.width / 2, y: this.y + this.height / 2 };
+    }
+
+    getRect() {
+        return { x: this.x, y: this.y, width: this.width, height: this.height };
     }
 }
 

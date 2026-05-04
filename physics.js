@@ -15,7 +15,7 @@ export const PHYSICS = {
     playerAirFriction: 200,
     playerMoveSpeed: 200,
     playerJumpForce: -420,
-    coyoteTime: 0.08,
+    coyoteTime: 0.12,
     jumpBufferTime: 0.1,
     enemyGravity: 1200,
     projectileSpeed: 400,
@@ -37,6 +37,7 @@ export class PhysicsBody {
         this.onWallRight = false;
         this.onCeiling = false;
         this.groundNormal = { x: 0, y: -1 };
+        this.speedMultiplier = 1.0;
     }
 
     impulse(vx, vy) {
