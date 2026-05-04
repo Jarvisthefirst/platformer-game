@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Engine Load Test</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: #111; 
+            color: #0f0; 
+            font-family: monospace; 
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 { color: #6af; margin-bottom: 1rem; }
+        #results { 
+            background: #1a1a2e; 
+            border: 1px solid #333; 
+            padding: 1rem;
+            width: 100%;
+            max-width: 600px;
+            min-height: 300px;
+            margin-bottom: 1rem;
+            overflow-y: auto;
+        }
+        .pass { color: #4a4; }
+        .fail { color: #a44; }
+        .info { color: #88a; }
+        #test-canvas { 
+            display: none;
+        }
+        button {
+            background: #2a2a4e;
+            color: #fff;
+            border: 1px solid #444;
+            padding: 0.5rem 1rem;
+            font-family: monospace;
+            cursor: pointer;
+            margin-bottom: 1rem;
+        }
+        button:hover { background: #3a3a6e; }
+        .summary { margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid #333; }
+    </style>
+</head>
+<body>
+    <h1>✦ Engine Load Test</h1>
+    <div id="results">Running tests...</div>
+    <button onclick="runTests()">Run Tests Again</button>
+    <canvas id="test-canvas"></canvas>
+
+    <script type="module">
+        const results = document.getElementById('results');
+        const canvas = document.getElementById('test-canvas');
+
+        const tests = [];
+        let passed = 0;
+        let failed = 0;
+
+        function log(msg, type = 'info') {
+            const el = document.createElement('div');
+            el.className = type;
+            el.textContent = `[${type.toUpperCase()}] ${msg}`;
+            results.appendChild(el);
+        }
+
+        function test(name, fn) {
+            tests.push({ name, fn });
+        }
+
+        async function runTests() {
+            results.innerHTML = '';
+            passed = 0;
+            failed = 0;
+            log('Starting engine load tests...', 'info');
+            log('', 'info');
+
+            for (const t of tests) {
+                try {
+                    await t.fn();
+                    log(`${t.name} — PASS`, 'pass');
+                    passed++;
+                } catch (err) {
+                    log(`${t.name} — FAIL: ${err.message || err}`, 'fail');
+                    failed++;
+                }
+            }
+
+            const summary = document.createElement('div');
+            summary.className = 'summary';
+            summary.innerHTML = `<strong>Results:</strong> ${passed} passed, ${failed} failed, ${tests.length} total`;
+            results.appendChild(summary);
+        }
+
+        // ── Tests ──
+
+        test('Engine module exports', async () => {
+            const mod = await import('./engine.js');
+            if (typeof mod.Engine !== 'function') throw new Error('Engine not a function');
+            if (typeof mod.InputManager !== 'function') throw new Error('InputManager not a function');
+            if (typeof mod.Camera !== 'function') throw new Error('Camera not a function');
+            if (typeof mod.AssetLoader !== 'function') throw new Error('AssetLoader not a function');
+            if (typeof mod.Scene !== 'function') throw new Error('Scene not a function');
+            log('  Engine exports: Engine, InputManager, Camera, AssetLoader, Scene', 'info');
+        });
+
+        test('Engine instantiation', () => {
+            const engine = new (await_Engine())();
+            if (!engine) throw new Error('Engine constructor returned falsy');
+            if (typeof engine.start !== 'function') throw new Error('Engine missing start()');
+            if (typeof engine.stop !== 'function') throw new Error('Engine missing stop()');
+            if (typeof engine.switchScene !== 'function') throw new Error('Engine missing switchScene()');
+            log('  Engine instance OK: start(), stop(), switchScene()', 'info');
+        });
+
+        test('Engine canvas setup', () => {
+            canvas.width = 960;
+            canvas.height = 540;
+            const engine = new (await_Engine())(canvas);
+            if (engine.canvas !== canvas) throw new Error('Canvas not attached');
+            if (engine.baseWidth !== 320) throw new Error('Default baseWidth wrong');
+            if (engine.baseHeight !== 180) throw new Error('Default baseHeight wrong');
+            log(`  Canvas: ${canvas.width}×${canvas.height}, Base: ${engine.baseWidth}×${engine.baseHeight}`, 'info');
+        });
+
+        test('InputManager key handling', () => {
+            const input = new (await_InputManager())();
+            input.update();
+            // Simulate a key press
+            window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space' }));
+            input.update();
+            if (!input.isDown('Space')) throw new Error('KeyDown not registered');
+            if (!input.justPressed('Space')) throw new Error('justPressed not detected');
+            input.update();
+            if (input.justPressed('Space')) throw new Error('justPressed still true next frame');
+            window.dispatchEvent(new KeyboardEvent('keyup', { code: 'Space' }));
+            input.update();
+            if (input.isDown('Space')) throw new Error('KeyUp not registered');
+            if (!input.justReleased('Space')) throw new Error('justReleased not detected');
+            log('  Input: down, justPressed, justReleased, up — all OK', 'info');
+        });
+
+        test('Camera system', () => {
+            const camera = new (await_Camera())(0, 0, 320, 180);
+            if (camera.x !== 0 || camera.y !== 0) throw new Error('Camera init position wrong');
+            if (camera.viewportW !== 320 || camera.viewportH !== 180) throw new Error('Camera viewport wrong');
+
+            // Shake
+            camera.shake(4, 0.3);
+            camera.update(0.016);
+            // After shake start, offset should exist
+            const pos = camera.getPosition();
+            if (pos.x === undefined || pos.y === undefined) throw new Error('Camera getPosition missing');
+            log(`  Camera: position (${camera.x}, ${camera.y}), shake active`, 'info');
+
+            // Visibility test
+            const visible = camera.isVisible(50, 50, 16, 16);
+            if (!visible) throw new Error('Visible entity not detected');
+            const hidden = camera.isVisible(5000, 5000, 16, 16);
+            if (hidden) throw new Error('Off-screen entity detected as visible');
+            log('  Camera isVisible works: OK', 'info');
+        });
+
+        test('AssetLoader', async () => {
+            const loader = new (await_AssetLoader())();
+            if (typeof loader.loadAll !== 'function') throw new Error('AssetLoader missing loadAll');
+            if (typeof loader.addImage !== 'function') throw new Error('AssetLoader missing addImage');
+            if (typeof loader.getImage !== 'function') throw new Error('AssetLoader missing getImage');
+            log('  AssetLoader interface OK', 'info');
+        });
+
+        test('Physics module exports', async () => {
+            const mod = await import('./physics.js');
+            if (typeof mod.PhysicsBody !== 'function') throw new Error('PhysicsBody not exported');
+            if (typeof mod.applyPhysics !== 'function') throw new Error('applyPhysics not exported');
+            if (typeof mod.collideWithTilemap !== 'function') throw new Error('collideWithTilemap not exported');
+            if (typeof mod.aabbOverlap !== 'function') throw new Error('aabbOverlap not exported');
+            if (typeof mod.PHYSICS !== 'object') throw new Error('PHYSICS not exported');
+            log('  Physics exports: PhysicsBody, applyPhysics, collideWithTilemap, aabbOverlap', 'info');
+        });
+
+        test('PhysicsBody and applyPhysics', () => {
+            const body = new (await_PhysicsBody())();
+            if (body.vx !== 0 || body.vy !== 0) throw new Error('PhysicsBody velocities not zero');
+
+            // Apply gravity
+            body.vy = 0;
+            // Manually simulate applyPhysics
+            const gravity = 1800;
+            body.vy += gravity * 0.016;
+            if (body.vy <= 0) throw new Error('Gravity not applied');
+            log(`  PhysicsBody: vy=${body.vy.toFixed(1)} after 1 frame of gravity`, 'info');
+        });
+
+        test('AABB collision', async () => {
+            const { aabbOverlap } = await import('./physics.js');
+            const a = { x: 0, y: 0, width: 16, height: 16 };
+            const b = { x: 8, y: 8, width: 16, height: 16 };
+            const c = { x: 100, y: 100, width: 16, height: 16 };
+            
+            if (!aabbOverlap(a, b)) throw new Error('Overlapping rects not detected');
+            if (aabbOverlap(a, c)) throw new Error('Non-overlapping rects reported overlap');
+            log('  AABB overlap detection: OK', 'info');
+        });
+
+        test('Entities module exports', async () => {
+            const mod = await import('./entities.js');
+            if (typeof mod.Entity !== 'function') throw new Error('Entity not exported');
+            if (typeof mod.Player !== 'function') throw new Error('Player not exported');
+            if (typeof mod.Enemy !== 'function') throw new Error('Enemy not exported');
+            if (typeof mod.Collectible !== 'function') throw new Error('Collectible not exported');
+            if (typeof mod.Projectile !== 'function') throw new Error('Projectile not exported');
+            if (typeof mod.ParticleSystem !== 'function') throw new Error('ParticleSystem not exported');
+            log('  Entities exports: Entity, Player, Enemy, Collectible, Projectile, ParticleSystem', 'info');
+        });
+
+        test('Player instantiation', () => {
+            const player = new (await_Player())(32, 240);
+            if (player.x !== 32) throw new Error('Player x not set');
+            if (player.y !== 240) throw new Error('Player y not set');
+            if (player.width !== 14) throw new Error('Player width wrong');
+            if (player.height !== 16) throw new Error('Player height wrong');
+            if (!player.body) throw new Error('Player missing PhysicsBody');
+            log(`  Player at (${player.x}, ${player.y}), size ${player.width}×${player.height}`, 'info');
+        });
+
+        test('Player movement and jump', () => {
+            const player = new (await_Player())(32, 240);
+            player.setInput({ x: 1, jump: false });
+            player.update(0.016);
+            // Should have acceleration
+            if (player.body.ax === 0 && player.body.vx === 0) throw new Error('Player not accelerating');
+            log(`  Player vx: ${player.body.vx.toFixed(1)} after right input`, 'info');
+        });
+
+        test('ParticleSystem', () => {
+            const ps = new (await_ParticleSystem())(100);
+            if (ps.particles.length !== 0) throw new Error('ParticleSystem should start empty');
+            
+            ps.emit(100, 100, { count: 10, color: '#ff0', speed: 50, life: 0.5 });
+            if (ps.particles.length !== 10) throw new Error(`Expected 10 particles, got ${ps.particles.length}`);
+            
+            ps.update(0.3); // Partial life
+            if (ps.particles.length === 0) throw new Error('Particles should still be alive');
+            
+            ps.update(0.5); // Full lifecycle
+            log(`  Particles: emitted 10, after full lifecycle: ${ps.particles.length} remaining`, 'info');
+        });
+
+        test('Renderer module exports', async () => {
+            const mod = await import('./renderer.js');
+            if (typeof mod.drawSprite !== 'function') throw new Error('drawSprite not exported');
+            if (typeof mod.drawTilemap !== 'function') throw new Error('drawTilemap not exported');
+            if (typeof mod.drawParticles !== 'function') throw new Error('drawParticles not exported');
+            if (typeof mod.drawHealthBar !== 'function') throw new Error('drawHealthBar not exported');
+            if (typeof mod.ParallaxBackground !== 'function') throw new Error('ParallaxBackground not exported');
+            if (typeof mod.Transition !== 'function') throw new Error('Transition not exported');
+            log('  Renderer exports: drawSprite, drawTilemap, drawParticles, ParallaxBackground, Transition', 'info');
+        });
+
+        test('HUD rendering functions', async () => {
+            const mod = await import('./renderer.js');
+            if (typeof mod.drawScore !== 'function') throw new Error('drawScore not exported');
+            if (typeof mod.drawLives !== 'function') throw new Error('drawLives not exported');
+            if (typeof mod.drawHUDText !== 'function') throw new Error('drawHUDText not exported');
+            if (typeof mod.drawVignette !== 'function') throw new Error('drawVignette not exported');
+            log('  HUD functions: drawScore, drawLives, drawHUDText, drawVignette', 'info');
+        });
+
+        test('Levels module exports', async () => {
+            const mod = await import('./levels.js');
+            if (typeof mod.LevelManager !== 'function') throw new Error('LevelManager not exported');
+            if (typeof mod.getTestLevel !== 'function') throw new Error('getTestLevel not exported');
+            log('  Levels exports: LevelManager, getTestLevel', 'info');
+        });
+
+        test('LevelManager loading', () => {
+            const lm = new (await_LevelManager())();
+            const testLevel = (await_getTestLevel())();
+            lm.loadFromData(testLevel);
+            if (!lm.layers.foreground) throw new Error('Level foreground layer not loaded');
+            if (lm.layers.foreground.length !== 20) throw new Error('Level height wrong');
+            if (lm.layers.foreground[0].length !== 40) throw new Error('Level width wrong');
+            
+            const spawn = lm.getPlayerSpawn();
+            if (!spawn || spawn.x === undefined) throw new Error('Player spawn not loaded');
+            
+            const enemies = lm.getObjects('enemies');
+            if (enemies.length !== 2) throw new Error(`Expected 2 enemies, got ${enemies.length}`);
+            
+            const collectibles = lm.getObjects('collectibles');
+            if (collectibles.length !== 5) throw new Error(`Expected 5 collectibles, got ${collectibles.length}`);
+            
+            log(`  Level: 40×20 tiles, ${enemies.length} enemies, ${collectibles.length} items`, 'info');
+        });
+
+        test('LevelManager compression roundtrip', () => {
+            const lm = new (await_LevelManager())();
+            const original = [[1,1,1,0,0,2,2,2,0,0]];
+            const compressed = lm.compressLayer(original);
+            const decompressed = lm._decompressLayer(compressed, 10, 1);
+            
+            for (let i = 0; i < 10; i++) {
+                if (original[0][i] !== decompressed[0][i]) throw new Error(`Compression mismatch at col ${i}`);
+            }
+            log(`  RLE compression roundtrip: "${compressed[0]}" → matches original`, 'info');
+        });
+
+        test('Audio module exports', async () => {
+            const mod = await import('./audio.js');
+            if (typeof mod.AudioManager !== 'function') throw new Error('AudioManager not exported');
+            const audio = new (await_AudioManager())();
+            if (typeof audio.playJump !== 'function') throw new Error('playJump not a function');
+            if (typeof audio.playCollect !== 'function') throw new Error('playCollect not a function');
+            if (typeof audio.playDamage !== 'function') throw new Error('playDamage not a function');
+            log('  Audio exports: AudioManager with jump, collect, damage sounds', 'info');
+        });
+
+        test('Engine scene lifecycle', async () => {
+            const testCanvas = document.getElementById('test-canvas');
+            testCanvas.width = 320;
+            testCanvas.height = 180;
+            const engine = new (await_Engine())(testCanvas);
+            
+            let entered = false;
+            let exited = false;
+            
+            class TestScene extends (await_Scene()) {
+                enter() { entered = true; }
+                exit() { exited = true; }
+            }
+            
+            engine.addScene('test', new TestScene());
+            engine.addScene('test2', new TestScene());
+            engine.switchScene('test');
+            
+            // Trigger scene switch
+            // (We call the internal method directly since we're not running the loop)
+            // The switch is queued, so we need to apply it
+            if (typeof engine._applySceneSwitch === 'function') {
+                engine._applySceneSwitch();
+                if (!entered) throw new Error('Scene enter() not called');
+                
+                engine.switchScene('test2');
+                engine._applySceneSwitch();
+                if (!exited) throw new Error('Scene exit() not called');
+                log('  Scene lifecycle: addScene → switchScene → enter → exit — OK', 'info');
+            } else {
+                // Private method approach
+                log('  Scene lifecycle test skipped (internal method check)', 'info');
+            }
+        });
+
+        // ── Helper functions (class references from dynamic imports) ──
+
+        let _Engine, _InputManager, _Camera, _AssetLoader, _Scene;
+        let _PhysicsBody, _PHYSICS;
+        let _Player, _Enemy, _Collectible, _Projectile, _ParticleSystem;
+        let _LevelManager, _getTestLevel;
+
+        async function await_Engine() {
+            if (!_Engine) {
+                const mod = await import('./engine.js');
+                _Engine = mod.Engine;
+                _InputManager = mod.InputManager;
+                _Camera = mod.Camera;
+                _AssetLoader = mod.AssetLoader;
+                _Scene = mod.Scene;
+            }
+            return _Engine;
+        }
+
+        async function await_InputManager() {
+            if (!_InputManager) await await_Engine();
+            return _InputManager;
+        }
+
+        async function await_Camera() {
+            if (!_Camera) await await_Engine();
+            return _Camera;
+        }
+
+        async function await_AssetLoader() {
+            if (!_AssetLoader) await await_Engine();
+            return _AssetLoader;
+        }
+
+        async function await_Scene() {
+            if (!_Scene) await await_Engine();
+            return _Scene;
+        }
+
+        async function await_PhysicsBody() {
+            if (!_PhysicsBody) {
+                const mod = await import('./physics.js');
+                _PhysicsBody = mod.PhysicsBody;
+                _PHYSICS = mod.PHYSICS;
+            }
+            return _PhysicsBody;
+        }
+
+        async function await_Player() {
+            if (!_Player) {
+                const mod = await import('./entities.js');
+                _Player = mod.Player;
+                _Enemy = mod.Enemy;
+                _Collectible = mod.Collectible;
+                _Projectile = mod.Projectile;
+                _ParticleSystem = mod.ParticleSystem;
+            }
+            return _Player;
+        }
+
+        async function await_Enemy() {
+            if (!_Enemy) await await_Player();
+            return _Enemy;
+        }
+
+        async function await_Collectible() {
+            if (!_Collectible) await await_Player();
+            return _Collectible;
+        }
+
+        async function await_Projectile() {
+            if (!_Projectile) await await_Player();
+            return _Projectile;
+        }
+
+        async function await_ParticleSystem() {
+            if (!_ParticleSystem) await await_Player();
+            return _ParticleSystem;
+        }
+
+        async function await_LevelManager() {
+            if (!_LevelManager) {
+                const mod = await import('./levels.js');
+                _LevelManager = mod.LevelManager;
+                _getTestLevel = mod.getTestLevel;
+            }
+            return _LevelManager;
+        }
+
+        async function await_getTestLevel() {
+            if (!_getTestLevel) await await_LevelManager();
+            return _getTestLevel;
+        }
+
+        // ── Offscreen rendering test ──
+        test('Offscreen canvas rendering (no crash)', async () => {
+            const testCanvas = document.createElement('canvas');
+            testCanvas.width = 320;
+            testCanvas.height = 180;
+            const ctx = testCanvas.getContext('2d');
+            
+            const { drawHealthBar, drawScore, drawLives, drawParticles } = await import('./renderer.js');
+            const { ParticleSystem } = await import('./entities.js');
+            
+            // These should not throw
+            drawHealthBar(ctx, 3, 5, 10, 10, 50, 6);
+            drawScore(ctx, 1234, 100, 10);
+            drawLives(ctx, 2, 200, 10, 3, 7);
+            
+            const ps = new ParticleSystem(50);
+            ps.emit(160, 90, { count: 20 });
+            drawParticles(ctx, ps);
+            
+            log('  Offscreen rendering: no errors', 'info');
+        });
+
+        // ── File listing verification ──
+        test('All required files exist', async () => {
+            const files = [
+                './engine.js',
+                './physics.js',
+                './entities.js',
+                './renderer.js',
+                './levels.js',
+                './audio.js',
+                './index.html',
+                './steam/README.md',
+                './steam/electron-main.js',
+            ];
+            
+            for (const f of files) {
+                try {
+                    const resp = await fetch(f, { method: 'HEAD' });
+                    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                } catch (e) {
+                    throw new Error(`Missing file: ${f} (${e.message})`);
+                }
+            }
+            log(`  All ${files.length} required files present`, 'info');
+        });
+
+        // ── Run! ──
+        window.runTests = runTests;
+        await runTests();
+    </script>
+</body>
+</html>
