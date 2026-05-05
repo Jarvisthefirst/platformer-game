@@ -695,10 +695,10 @@
                         }
                     }
                 }
-                // Time rush: enemies at 50% speed
+                // Time rush: enemies at 1.2x speed
                 if (player.rushActive) {
                     for (const enemy of gameState.enemies) {
-                        enemy.body.speedMultiplier = 0.5;
+                        enemy.body.speedMultiplier = 1.2;
                     }
                 }
                 // Burst: slow nearby enemies + projectiles by 60%
