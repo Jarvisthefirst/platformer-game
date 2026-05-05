@@ -672,15 +672,27 @@
                 parallax.update(engine.camera.x, engine.camera.y);
                 transition.update(dt);
 
-                // ── Time power effects on enemies ──
+                // ── Time power effects on enemies & projectiles ──
                 // Reset speed multipliers each frame
                 for (const enemy of gameState.enemies) {
                     enemy.body.speedMultiplier = 1.0;
                 }
-                // Slow field: slow ALL enemies by 50%
+                // Undo burst-slowed flag on projectiles each frame
+                for (const proj of gameState.projectiles) {
+                    proj._slowedThisFrame = false;
+                }
+
+                // Slow field: slow ALL enemies to 30%, projectiles to 40%
                 if (player.slowActive) {
                     for (const enemy of gameState.enemies) {
-                        enemy.body.speedMultiplier = 0.5;
+                        enemy.body.speedMultiplier = 0.3;
+                    }
+                    for (const proj of gameState.projectiles) {
+                        if (!proj._slowedThisFrame) {
+                            proj.body.vx *= 0.4;
+                            proj.body.vy *= 0.4;
+                            proj._slowedThisFrame = true;
+                        }
                     }
                 }
                 // Time rush: enemies at 50% speed
@@ -696,11 +708,13 @@
                         if (dist < 240) enemy.body.speedMultiplier = Math.min(enemy.body.speedMultiplier, 0.4);
                     }
                     for (const proj of gameState.projectiles) {
+                        if (proj._slowedThisFrame) continue; // already slowed by slow field
                         const dist = Math.abs(proj.x - player.x);
                         if (dist < 240 && !proj._burstSlowed) {
                             proj.body.vx *= 0.4;
                             proj.body.vy *= 0.4;
                             proj._burstSlowed = true;
+                            proj._slowedThisFrame = true;
                         }
                     }
                 }

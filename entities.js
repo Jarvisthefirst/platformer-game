@@ -257,6 +257,7 @@ export class Player extends Entity {
         let baseSpeed = 200;
         if (this.rushActive) baseSpeed = 400;
         if (this.burstTimer > 0) baseSpeed = 600; // 3x normal speed (200 * 3 = 600)
+        if (this.slowActive) baseSpeed = 160; // 80% of normal speed
         const speed = baseSpeed;
         this.body.maxSpeedX = speed;
         const accel = speed / 0.08; // Reach max speed in ~80ms
@@ -421,6 +422,10 @@ export class Player extends Entity {
             return true;
         }
         if (this.chronoGauge < 2.0) return false;
+        // Deactivate rush if active (mutually exclusive)
+        if (this.rushActive) {
+            this.rushActive = false;
+        }
         this.chronoGauge -= 2.0;
         this.slowActive = true;
         this.activePower = 'slow';
@@ -439,6 +444,10 @@ export class Player extends Entity {
             return true;
         }
         if (this.chronoGauge < 1.0) return false;
+        // Deactivate slow if active (mutually exclusive)
+        if (this.slowActive) {
+            this.slowActive = false;
+        }
         this.chronoGauge -= 1.0;
         this.rushActive = true;
         this.activePower = 'rush';
