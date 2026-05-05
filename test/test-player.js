@@ -98,8 +98,8 @@ test('Player has correct physics properties', () => {
     assertEqual(p.body.friction, PHYSICS.playerFriction, 'Default friction');
     assertEqual(p.jumpForce, PHYSICS.playerJumpForce, 'Jump force');
     assertEqual(p.coyoteTimer, 0, 'Coyote timer starts at 0');
-    assertEqual(p.jumpsLeft, 2, 'Double jump available');
-    assertEqual(p.maxJumps, 2, 'Max jumps is 2');
+    assertEqual(p.jumpsLeft, 1, 'Single jump default (double jump requires Crystal)');
+    assertEqual(p.maxJumps, 1, 'Max jumps is 1 (double jump unlocked via Crystal)');
     ok('Player physics properties correct');
 });
 

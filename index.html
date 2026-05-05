@@ -449,14 +449,24 @@
                         this._playerDied();
                     }
 
-                    // Hazard tiles
-                    if (player.body.onGround) {
-                        const col = Math.floor((player.x + player.width / 2) / tw);
-                        const row = Math.floor((player.y + player.height) / th);
-                        const tile = tiles[row]?.[col];
-                        if (tile && levelManager.isHazard(tile)) {
-                            player.takeDamage(1);
-                            engine.camera.shake(4, 0.3);
+                    // Hazard tiles — AABB overlap, not just ground contact
+                    if (player.alive && !player.invincible) {
+                        const minCol = Math.floor(player.x / tw);
+                        const maxCol = Math.floor((player.x + player.width - 0.01) / tw);
+                        const minRow = Math.floor(player.y / th);
+                        const maxRow = Math.floor((player.y + player.height - 0.01) / th);
+                        for (let r = minRow; r <= maxRow; r++) {
+                            for (let c = minCol; c <= maxCol; c++) {
+                                const tile = tiles[r]?.[c];
+                                if (tile && levelManager.isHazard(tile)) {
+                                    player.takeDamage(1);
+                                    engine.camera.shake(4, 0.3);
+                                    particleSystem.emit(player.x + player.width / 2, player.y + player.height / 2,
+                                        { count: 8, speed: 80, life: 0.4, color: '#aa4444', gravity: 100 });
+                                    r = maxRow + 1; // break outer loop
+                                    break;
+                                }
+                            }
                         }
                     }
 

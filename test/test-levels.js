@@ -294,11 +294,11 @@ test('Enemies are not placed inside solid tiles', () => {
 
 run('Hazard Tile Analysis');
 
-test('Spike tiles (ID 5) are not in solidTiles set', () => {
+test('Spike tiles (ID 5) are solid and hazard', () => {
     const lm = new LevelManager();
-    assert(!lm.isSolid(5), 'LevelManager.solidTiles does NOT include tile 5');
+    assert(lm.isSolid(5), 'LevelManager.solidTiles includes tile 5');
     assert(lm.isHazard(5), 'LevelManager.hazardTiles includes tile 5');
-    ok('Spikes excluded from solid, included in hazards');
+    ok('Spikes are solid (can stand on) and deadly (AABB-damaging)');
 });
 
 test('Spike count per level', () => {
@@ -350,13 +350,14 @@ run('Level-Specific Checks');
 test('Level 1: Spike pit at columns 30-32', () => {
     const d = getLevelData(0);
     // Spikes at [18][30-32]
-    assert(d.fg[18][30] === 5, 'Spike at [18][30]');
-    assert(d.fg[18][31] === 5, 'Spike at [18][31]');
-    assert(d.fg[18][32] === 5, 'Spike at [18][32]');
-    // Ground removed below
-    assert(d.fg[19][30] === 0, 'Row 19 col 30 cleared');
-    assert(d.fg[19][31] === 0, 'Row 19 col 31 cleared');
-    assert(d.fg[19][32] === 0, 'Row 19 col 32 cleared');
+    // Gap above (row 18) — player falls into spikes
+    assert(d.fg[18][30] === 0, 'Row 18 col 30 cleared (fall gap)');
+    assert(d.fg[18][31] === 0, 'Row 18 col 31 cleared (fall gap)');
+    assert(d.fg[18][32] === 0, 'Row 18 col 32 cleared (fall gap)');
+    // Spikes at row 19 (ground level)
+    assert(d.fg[19][30] === 5, 'Spike at [19][30]');
+    assert(d.fg[19][31] === 5, 'Spike at [19][31]');
+    assert(d.fg[19][32] === 5, 'Spike at [19][32]');
     ok('Level 1: Spike pit at cols 30-32 confirmed');
 });
 
@@ -407,10 +408,11 @@ run('LevelManager');
 test('LevelManager initializes with correct tile sets', () => {
     const lm = new LevelManager();
     assert(lm.solidTiles instanceof Set, 'solidTiles is Set');
-    assert(lm.isSolid(1), 'Tile 1 solid');
-    assert(lm.isSolid(2), 'Tile 2 solid');
+    assert(lm.isSolid(1), 'Tile 1 (ground) solid');
+    assert(lm.isSolid(2), 'Tile 2 (wall) solid');
+    assert(lm.isSolid(3), 'Tile 3 (platform) solid');
+    assert(lm.isSolid(5), 'Tile 5 (spike) solid (walkable + deadly)');
     assert(lm.isSolid(6), 'Tile 6 (gear) solid');
-    assert(!lm.isSolid(5), 'Tile 5 (spike) NOT solid');
     assert(lm.isOneWay(4), 'Tile 4 is one-way');
     assert(lm.isHazard(5), 'Tile 5 is hazard');
     ok('LevelManager tile sets correct');
