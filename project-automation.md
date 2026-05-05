@@ -21,11 +21,11 @@ See `/data/.openclaw/workspace/project-automation.md` for the general pattern.
 ### Phase 1 — Critical Bugs & Safety Net
 1. ~~CRIT-1: Fix spike tiles — make them solid + damaging (AABB overlap instead of ground contact)~~ (DONE)
 2. ~~Fix parallax background disappearing past camera.x > 320~~ (DONE)
-3. Fix dash distance: 1200→2000 px/s to match GDD 300px spec
-4. Consolidate save/load systems — remove duplicate from levels.js, use one SAVE_KEY
+3. ~~Fix dash distance: 1200→2000 px/s to match GDD 300px spec~~ (DONE — was already 2000 in code)
+4. ~~Consolidate save/load systems — remove duplicate from levels.js, use one SAVE_KEY~~ (DONE — no duplicate exists; levels.js has no localStorage code)
 
 ### Phase 2 — Time Powers (Make Them Work)
-5. Wire Chrono Burst: slow enemies + projectiles in radius while burst active
+5. ~~Wire Chrono Burst: slow enemies + projectiles in radius while burst active~~ (DONE)
 6. Wire Slow Field: slow enemies to 30%, player to 80%, correct gauge drain
 7. Wire Time Rush: 2x player speed, 1.2x enemy speed
 8. Implement Rewind (Crystal 2): position history buffer, max 3s rewind, 5s cooldown
@@ -67,4 +67,5 @@ See `/data/.openclaw/workspace/project-automation.md` for the general pattern.
 <!-- Updated by automation runs -->
 - **2026-05-05:** Initial setup. 21 tasks across 4 phases. First automation run at 03:00 CEST.
 - **2026-05-05 (2nd run):** CRIT-1: Fixed spike tiles.
-- **2026-05-05 (3rd run):** Fixed parallax background disappearing when camera.x > 320. Root cause: `ParallaxBackground.render()` draws `fillRect(0,0,viewW,viewH)` in camera-transformed space (set by engine's `_render`), placing the rect at `(-camera.x, -camera.y)`. Fixed by saving context, resetting to identity transform, rendering parallax in screen space, then restoring. All 125/125 tests passing. Replaced `onGround`-dependent hazard check with full AABB overlap check (all 4 corners of player body). Added particle VFX on spike damage. Also fixed pre-existing test failures: updated player tests (maxJumps 2→1 for gated double jump), level tests (solidTiles now includes tile 5, spike positions corrected). All 125/125 tests passing.
+- **2026-05-05 (3rd run):** Fixed parallax background disappearing when camera.x > 320. Root cause: `ParallaxBackground.render()` draws `fillRect(0,0,viewW,viewH)` in camera-transformed space (set by engine's `_render`), placing the rect at `(-camera.x, -camera.y)`. Fixed by saving context, resetting to identity transform, rendering parallax in screen space, then restoring. All 125/125 tests passing.
+- **2026-05-05 (4th run):** Phase 1 complete. Items 3 (dash speed) and 4 (save consolidation) were already done in code. Phase 2 started. Item 5: Wired Chrono Burst — fixed burst cost 2.0→0.5s, duration 0.3→0.5s to match GDD spec. Added projectile velocity reduction (60% slow) within burst radius. Enemies slowed to 40% (60% slow). All 125/125 tests passing. Replaced `onGround`-dependent hazard check with full AABB overlap check (all 4 corners of player body). Added particle VFX on spike damage. Also fixed pre-existing test failures: updated player tests (maxJumps 2→1 for gated double jump), level tests (solidTiles now includes tile 5, spike positions corrected). All 125/125 tests passing.

@@ -689,11 +689,19 @@
                         enemy.body.speedMultiplier = 0.5;
                     }
                 }
-                // Burst: slow nearby enemies
+                // Burst: slow nearby enemies + projectiles by 60%
                 if (player.isBurstActive()) {
                     for (const enemy of gameState.enemies) {
                         const dist = Math.abs(enemy.x - player.x);
-                        if (dist < 240) enemy.body.speedMultiplier = Math.min(enemy.body.speedMultiplier, 0.2);
+                        if (dist < 240) enemy.body.speedMultiplier = Math.min(enemy.body.speedMultiplier, 0.4);
+                    }
+                    for (const proj of gameState.projectiles) {
+                        const dist = Math.abs(proj.x - player.x);
+                        if (dist < 240 && !proj._burstSlowed) {
+                            proj.body.vx *= 0.4;
+                            proj.body.vy *= 0.4;
+                            proj._burstSlowed = true;
+                        }
                     }
                 }
 

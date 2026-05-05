@@ -401,10 +401,10 @@ export class Player extends Entity {
     }
 
     _activateTimePower() {
-        if (this.unlockedPowers.includes('burst') && this.chronoGauge >= 2.0 && this.burstCooldown <= 0) {
-            // Chrono Burst — multiply player speed by 3 for 0.3s
-            this.chronoGauge -= 2.0;
-            this.burstTimer = 0.3;
+        if (this.unlockedPowers.includes('burst') && this.chronoGauge >= 0.5 && this.burstCooldown <= 0) {
+            // Chrono Burst — slow enemies & projectiles 60% for 0.5s (GDD spec)
+            this.chronoGauge -= 0.5;
+            this.burstTimer = 0.5;
             this.burstCooldown = 1.0;
             this.chronoRechargeTimer = this.chronoRechargeDelay;
         }

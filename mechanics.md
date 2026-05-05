@@ -51,7 +51,7 @@
 | Property | Value |
 |----------|-------|
 | Dash duration | 150ms |
-| Dash speed | 1200 px/s (not scaled, flat burst) |
+| Dash speed | 2000 px/s (300px over 150ms; matches 2000×0.15 = 300) |
 | Dash distance | 180px |
 | Air dash height change | 0px (horizontal only) |
 | Dash cooldown | 350ms |
