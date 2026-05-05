@@ -762,9 +762,11 @@
                 const th = levelManager.levelData?.tileHeight || 16;
                 const player = gameState.player;
 
-                // ── Parallax background ──
-                // Rendered in engine's camera transform space (no extra translate)
+                // ── Parallax background (screen space — undo camera transform) ──
+                ctx.save();
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
                 parallax.render(ctx, vw, vh);
+                ctx.restore();
 
                 // ── Background tiles ──
                 const bgTiles = levelManager.getLayer('background');
