@@ -1,16 +1,20 @@
-# Game Automation — Chronos Edge
+# Project Automation — Chronos Edge
 
-This file is the operating plan for the autonomous game development cron job.
-Updated automatically after each run.
+See `/data/.openclaw/workspace/project-automation.md` for the general pattern.
 
-## Project Location
-`/data/.openclaw/workspace/platformer-game/`
-Remote: `https://github.com/Jarvisthefirst/platformer-game.git`
-
-## Current State (initial)
-- **Last commit:** 2026-05-05 "Auto: speedMultiplier physics, time power effects via multiplier, level complete fanfare, jump sound fix"
+## Current State
+- **Last commit:** 2026-05-05 "Auto: update game-automation.md with clean state for automation"
 - **Tests:** 125/125 passing
-- **State:** Clean working tree — ready for automation
+- **State:** Clean working tree
+- **Line count:** ~5,085 across 8 files (JS + HTML)
+- **Remote:** https://github.com/Jarvisthefirst/platformer-game.git
+
+## Automation Rules
+- **Test command:** `cd /data/.openclaw/workspace/platformer-game/test && node run-tests.js`
+- **Commit format:** `Auto: {description}`
+- **Push after every commit:** `git push origin main`
+- **If blocked:** commit partial progress, note blocker in commit message, update this file
+- **If complete:** set status to COMPLETE and message Master
 
 ## Priority Queue
 
@@ -23,7 +27,7 @@ Remote: `https://github.com/Jarvisthefirst/platformer-game.git`
 ### Phase 2 — Time Powers (Make Them Work)
 5. Wire Chrono Burst: slow enemies + projectiles in radius while burst active
 6. Wire Slow Field: slow enemies to 30%, player to 80%, correct gauge drain
-7. Wire Time Rush: 2× player speed, 1.2× enemy speed
+7. Wire Time Rush: 2x player speed, 1.2x enemy speed
 8. Implement Rewind (Crystal 2): position history buffer, max 3s rewind, 5s cooldown
 9. Implement Echo (Crystal 4): clone placement, frozen-movement playback, contact damage
 
@@ -43,23 +47,16 @@ Remote: `https://github.com/Jarvisthefirst/platformer-game.git`
 20. Build full level 3
 21. Steam integration (steam/ folder exists)
 
-## Automation Rules
-- **Run tests before every commit:** `cd test && node run-tests.js`
-- **Commit message format:** `Auto: <short description>`
-- **Push after every commit:** `git push origin main`
-- **Update this file** after each run: record what was done
-- **If stuck** (test failures, design ambiguity): commit partial progress, update this file with the blocker, mark "BLOCKED" in the commit message
-- **If game is complete** (all phases done): set status to COMPLETE and include "GAME COMPLETE" in the message
-
-## Game Overview
+## Game Context
 - Canvas 2D platformer, no external libraries
-- 16px tiles, 320×180 internal resolution
-- 3 time powers: Burst (area slow), Slow (field), Rush (self speed)
-- 2 hidden powers: Rewind (checkpoint rollback), Echo (clone)
+- 16px tiles, 320x180 internal resolution
+- 3 visible time powers: Burst (area slow), Slow (field), Rush (self speed)
+- 2 hidden: Rewind (checkpoint rollback), Echo (clone)
 - Player: jump, double jump, dash, wall slide/jump, 3-combo attack
 - Enemies: chaser, shooter (both with patrol)
-- Procedural audio (Web Audio API oscillators, no files)
+- Procedural audio (Web Audio API oscillators)
 - Save: localStorage, health + crystals + powers + checkpoint
+- 3 test levels introducing mechanics incrementally
 
 ## Progression Design
 - Level 1 (The Gears of Time): Tutorial — double jump + platforming basics, Crystal 1 = double jump
@@ -68,4 +65,4 @@ Remote: `https://github.com/Jarvisthefirst/platformer-game.git`
 
 ## Status Log
 <!-- Updated by automation runs -->
-- **Initial:** All phases open, ~25+ items remaining
+- **2026-05-05:** Initial setup. 21 tasks across 4 phases. First automation run at 03:00 CEST.
