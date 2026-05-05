@@ -3,7 +3,7 @@
 See `/data/.openclaw/workspace/project-automation.md` for the general pattern.
 
 ## Current State
-- **Last commit:** 2026-05-05 "Auto: update game-automation.md with clean state for automation"
+- **Last commit:** 2026-05-05 "Auto: fix parallax background disappearing past camera.x > 320 (screen space render)"
 - **Tests:** 125/125 passing
 - **State:** Clean working tree
 - **Line count:** ~5,085 across 8 files (JS + HTML)
@@ -20,7 +20,7 @@ See `/data/.openclaw/workspace/project-automation.md` for the general pattern.
 
 ### Phase 1 — Critical Bugs & Safety Net
 1. ~~CRIT-1: Fix spike tiles — make them solid + damaging (AABB overlap instead of ground contact)~~ (DONE)
-2. Fix parallax background disappearing past camera.x > 320
+2. ~~Fix parallax background disappearing past camera.x > 320~~ (DONE)
 3. Fix dash distance: 1200→2000 px/s to match GDD 300px spec
 4. Consolidate save/load systems — remove duplicate from levels.js, use one SAVE_KEY
 
@@ -66,4 +66,5 @@ See `/data/.openclaw/workspace/project-automation.md` for the general pattern.
 ## Status Log
 <!-- Updated by automation runs -->
 - **2026-05-05:** Initial setup. 21 tasks across 4 phases. First automation run at 03:00 CEST.
-- **2026-05-05 (2nd run):** CRIT-1: Fixed spike tiles. Replaced `onGround`-dependent hazard check with full AABB overlap check (all 4 corners of player body). Added particle VFX on spike damage. Also fixed pre-existing test failures: updated player tests (maxJumps 2→1 for gated double jump), level tests (solidTiles now includes tile 5, spike positions corrected). All 125/125 tests passing.
+- **2026-05-05 (2nd run):** CRIT-1: Fixed spike tiles.
+- **2026-05-05 (3rd run):** Fixed parallax background disappearing when camera.x > 320. Root cause: `ParallaxBackground.render()` draws `fillRect(0,0,viewW,viewH)` in camera-transformed space (set by engine's `_render`), placing the rect at `(-camera.x, -camera.y)`. Fixed by saving context, resetting to identity transform, rendering parallax in screen space, then restoring. All 125/125 tests passing. Replaced `onGround`-dependent hazard check with full AABB overlap check (all 4 corners of player body). Added particle VFX on spike damage. Also fixed pre-existing test failures: updated player tests (maxJumps 2→1 for gated double jump), level tests (solidTiles now includes tile 5, spike positions corrected). All 125/125 tests passing.
