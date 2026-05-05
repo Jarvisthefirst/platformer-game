@@ -285,6 +285,37 @@ export class AudioManager {
         osc.stop(this.ctx.currentTime + 0.12);
     }
 
+    /**
+     * Play a level complete fanfare.
+     * Ascending major chord arpeggio.
+     */
+    playLevelComplete() {
+        this._ensureInit();
+        if (!this.ctx) return;
+
+        const notes = [523, 659, 784, 1047]; // C5, E5, G5, C6
+        const duration = 0.15;
+
+        notes.forEach((freq, i) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+
+            const startTime = this.ctx.currentTime + i * duration;
+            gain.gain.setValueAtTime(0.3, startTime);
+            gain.gain.linearRampToValueAtTime(0.15, startTime + 0.1);
+            gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.3);
+
+            osc.connect(gain);
+            gain.connect(this.sfxGain);
+
+            osc.start(startTime);
+            osc.stop(startTime + 0.3);
+        });
+    }
+
     // ═══════════════════════════════════════════════════════════════════
     //  Background Music (Procedural)
     // ═══════════════════════════════════════════════════════════════════

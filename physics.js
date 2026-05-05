@@ -74,8 +74,9 @@ export function applyPhysics(body, dt, gravity = PHYSICS.gravity) {
         }
     }
 
-    if (body.vx > body.maxSpeedX) body.vx = body.maxSpeedX;
-    if (body.vx < -body.maxSpeedX) body.vx = -body.maxSpeedX;
+    const spdMul = body.speedMultiplier || 1;
+    if (body.vx > body.maxSpeedX * spdMul) body.vx = body.maxSpeedX * spdMul;
+    if (body.vx < -body.maxSpeedX * spdMul) body.vx = -body.maxSpeedX * spdMul;
 
     body.ax = 0;
     body.ay = 0;

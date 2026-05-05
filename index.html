@@ -432,8 +432,8 @@
                     const wasGrounded = player.body.onGround;
                     player.setInput(pInput);
                     player.update(dt);
-                    // Jump sound
-                    if (!player.body.onGround && wasGrounded && pInput.jump) {
+                    // Jump sound — detect by body leaving ground with upward velocity
+                    if (wasGrounded && !player.body.onGround && player.body.vy < 0) {
                         audio.playJump();
                     }
 
@@ -663,25 +663,27 @@
                 transition.update(dt);
 
                 // ── Time power effects on enemies ──
+                // Reset speed multipliers each frame
+                for (const enemy of gameState.enemies) {
+                    enemy.body.speedMultiplier = 1.0;
+                }
                 // Slow field: slow ALL enemies by 50%
                 if (player.slowActive) {
                     for (const enemy of gameState.enemies) {
-                        enemy.body.maxSpeedX = (enemy.constructor.prototype.body?.maxSpeedX || 60) * 0.5;
-                        if (enemy.body.maxSpeedX < 10) enemy.body.maxSpeedX = 10;
+                        enemy.body.speedMultiplier = 0.5;
                     }
                 }
                 // Time rush: enemies at 50% speed
                 if (player.rushActive) {
                     for (const enemy of gameState.enemies) {
-                        enemy.body.maxSpeedX = (enemy.constructor.prototype.body?.maxSpeedX || 60) * 0.5;
-                        if (enemy.body.maxSpeedX < 10) enemy.body.maxSpeedX = 10;
+                        enemy.body.speedMultiplier = 0.5;
                     }
                 }
                 // Burst: slow nearby enemies
                 if (player.isBurstActive()) {
                     for (const enemy of gameState.enemies) {
                         const dist = Math.abs(enemy.x - player.x);
-                        if (dist < 240) enemy.body.maxSpeedX = 30;
+                        if (dist < 240) enemy.body.speedMultiplier = Math.min(enemy.body.speedMultiplier, 0.2);
                     }
                 }
 
@@ -724,7 +726,7 @@
                         if (dist < 20) {
                             gameState.levelComplete = true;
                             gameState.levelCompleteTimer = 0;
-                            audio.playCollect(); // level complete chime
+                            audio.playLevelComplete();
                             saveGame();
                         }
                     }
@@ -772,7 +774,7 @@
                 ctx.save();
 
                 // ── Collectibles ──
-                const colColors = { coin: '#ffdd44', gem: '#44ddff', star: '#ffaa00', heart: '#ff4466', shard: '#aa66ff' };
+                const colColors = { coin: '#ffdd44', gem: '#44ddff', star: '#ffaa00', heart: '#ff4466', shard: '#aa66ff', double_jump: '#66ff66' };
                 for (const item of gameState.collectibles) {
                     if (!item.alive) continue;
                     if (!engine.camera.isVisible(item.x, item.y, item.width, item.height)) continue;
