@@ -135,6 +135,7 @@ export class Player extends Entity {
         this.positionHistory = new Array(180); // 3 seconds at 60fps
         this.historyIndex = 0;
         this.historyFull = false;
+        this.rewindCooldown = 0;
 
         // ── Echo recording ──
         this.inputHistory = [];
@@ -175,6 +176,7 @@ export class Player extends Entity {
 
         this.burstTimer -= dt;
         this.burstCooldown -= dt;
+        this.rewindCooldown -= dt;
 
         // Chrono gauge recharge
         if (this.chronoRechargeTimer > 0) {
@@ -458,17 +460,18 @@ export class Player extends Entity {
     // ── Position recording (for rewind) ──
 
     _recordPosition() {
-        this.positionHistory[this.historyIndex] = { x: this.x, y: this.y };
+        this.positionHistory[this.historyIndex] = { x: this.x, y: this.y, health: this.health };
         this.historyIndex = (this.historyIndex + 1) % this.positionHistory.length;
         if (this.historyIndex === 0) this.historyFull = true;
     }
 
     /**
-     * Rewind — restore position to 3 seconds ago. Cost 3 bars.
+     * Rewind — restore position & health to 3 seconds ago. Cost 3 bars. Cooldown 5s.
      */
     activateRewind() {
         if (!this.unlockedPowers.includes('rewind')) return false;
         if (this.chronoGauge < 3.0) return false;
+        if (this.rewindCooldown > 0) return false;
         const lookback = Math.min(180, this.historyFull ? 180 : this.historyIndex);
         if (lookback < 2) return false;
         let idx = this.historyIndex - lookback;
@@ -483,8 +486,13 @@ export class Player extends Entity {
         if (!pos) return false;
         this.chronoGauge -= 3.0;
         this.chronoRechargeTimer = this.chronoRechargeDelay;
+        this.rewindCooldown = 5.0;
         this.x = pos.x;
         this.y = pos.y;
+        // Restore health to snapshot value (max 3s ago)
+        if (pos.health !== undefined) {
+            this.health = Math.min(this.maxHealth, Math.max(1, pos.health));
+        }
         this.body.vx = 0;
         this.body.vy = 0;
         this.body.gravityScale = 1;

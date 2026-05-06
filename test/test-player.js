@@ -601,6 +601,162 @@ test('ToggleTimeRush requires gauge and toggles state', () => {
     ok('Time rush toggles on');
 });
 
+run('Rewind');
+
+test('Rewind records position history and correctly indexes', () => {
+    const p = setupPlayer(100, 240);
+    assert(p.positionHistory.length === 180, 'Position history buffer is 180 frames');
+    assertEqual(p.historyIndex, 0, 'Starts at index 0');
+    assert(!p.historyFull, 'Not full yet');
+
+    // Record a few frames
+    p._recordPosition();
+    assertEqual(p.historyIndex, 1, 'Advanced to index 1');
+    assert(p.positionHistory[0] !== undefined, 'History entry exists');
+    assertEqual(p.positionHistory[0].x, 100, 'Stores x position');
+    assertEqual(p.positionHistory[0].y, 240, 'Stores y position');
+    assertEqual(p.positionHistory[0].health, 4, 'Stores health');
+
+    // Move and record more
+    p.x = 150;
+    p.y = 200;
+    p.takeDamage(2);
+    p._recordPosition();
+    assertEqual(p.positionHistory[1].x, 150, 'Stores updated x');
+    assertEqual(p.positionHistory[1].health, 2, 'Stores updated health');
+
+    ok('Rewind position history records x, y, and health');
+});
+
+test('Rewind restores position correctly', () => {
+    const p = setupPlayer(100, 240);
+
+    // Fill history with a known position
+    for (let i = 0; i < 180; i++) {
+        p.positionHistory[i] = { x: 100, y: 240, health: 4 };
+    }
+    p.historyFull = true;
+    p.historyIndex = 0;
+
+    // Move player somewhere else
+    p.x = 500;
+    p.y = 500;
+
+    // Rewind
+    const result = p.activateRewind();
+    assert(result, 'Rewind should succeed');
+    assertEqual(p.x, 100, 'X restored to recorded position');
+    assertEqual(p.y, 240, 'Y restored to recorded position');
+    assert(p.body.vx === 0, 'Velocity reset to 0');
+    assertEqual(p.chronoGauge, 5, 'Gauge reduced by 3 (cost)');
+    ok('Rewind correctly restores position');
+});
+
+test('Rewind restores health from snapshot', () => {
+    const p = setupPlayer(100, 240);
+    p.chronoGauge = 8;
+
+    // Fill history with low health state
+    for (let i = 0; i < 180; i++) {
+        p.positionHistory[i] = { x: 100, y: 240, health: 2 };
+    }
+    p.historyFull = true;
+    p.historyIndex = 0;
+
+    // Take damage - health is now lower
+    p.health = 1;
+
+    const result = p.activateRewind();
+    assert(result, 'Rewind should succeed');
+    assertEqual(p.health, 2, 'Health restored to snapshot value');
+    ok('Rewind restores health from position history');
+});
+
+test('Rewind requires minimum 2 recorded frames', () => {
+    const p = setupPlayer(100, 240);
+    p.chronoGauge = 8;
+
+    // No history yet
+    p.historyFull = false;
+    p.historyIndex = 0;
+
+    const result = p.activateRewind();
+    assert(!result, 'Rewind should fail with no history');
+    assertEqual(p.chronoGauge, 8, 'Gauge not consumed on failure');
+    ok('Rewind returns false with insufficient history');
+});
+
+test('Rewind has 5s cooldown', () => {
+    const p = setupPlayer(100, 240);
+    p.chronoGauge = 8;
+
+    // Fill history
+    for (let i = 0; i < 180; i++) {
+        p.positionHistory[i] = { x: 100, y: 240, health: 4 };
+    }
+    p.historyFull = true;
+    p.historyIndex = 0;
+
+    // First rewind succeeds
+    assert(p.activateRewind(), 'First rewind should succeed');
+    assert(p.rewindCooldown > 4.5, 'Cooldown set to ~5s');
+
+    p.chronoGauge = 8; // Refill gauge
+
+    // Second rewind should fail (cooldown)
+    assert(!p.activateRewind(), 'Second rewind should fail (cooldown)');
+
+    // Advance time
+    p.rewindCooldown = -1;
+    p.chronoGauge = 8;
+
+    assert(p.activateRewind(), 'Third rewind should succeed after cooldown');
+    ok('Rewind enforces 5s cooldown');
+});
+
+test('Rewind requires 3.0 chrono gauge', () => {
+    const p = setupPlayer(100, 240);
+
+    // Fill history
+    for (let i = 0; i < 180; i++) {
+        p.positionHistory[i] = { x: 100, y: 240, health: 4 };
+    }
+    p.historyFull = true;
+    p.historyIndex = 0;
+
+    // Set low gauge
+    p.chronoGauge = 2.5;
+
+    assert(!p.activateRewind(), 'Rewind should fail with < 3.0 gauge');
+    assertEqual(p.chronoGauge, 2.5, 'Gauge not consumed on failure');
+    ok('Rewind requires 3.0 chrono gauge');
+});
+
+test('Rewind activates invincibility and resets velocity', () => {
+    const p = setupPlayer(100, 240);
+    p.chronoGauge = 8;
+    p.invincible = false;
+    p.invincibleTimer = 0;
+
+    // Fill history
+    for (let i = 0; i < 180; i++) {
+        p.positionHistory[i] = { x: 100, y: 240, health: 4 };
+    }
+    p.historyFull = true;
+    p.historyIndex = 0;
+
+    p.body.vx = 500;
+    p.body.vy = 500;
+
+    assert(p.activateRewind(), 'Rewind should succeed');
+    assert(p.invincible, 'Player becomes invincible after rewind');
+    assert(p.invincibleTimer > 0.2, 'Invincible timer set (~0.3s)');
+    assertEqual(p.body.vx, 0, 'Velocity vx reset to 0');
+    assertEqual(p.body.vy, 0, 'Velocity vy reset to 0');
+    assertEqual(p.body.gravityScale, 1, 'Gravity scale restored to 1');
+    ok('Rewind grants invincibility and resets physics state');
+});
+
 run('Respawn');
 
 test('Respawn restores player state', () => {
