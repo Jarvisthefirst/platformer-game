@@ -391,9 +391,9 @@
                     input.justPressed('DPAD_UP') || input.justPressed('GAMEPAD_A')) pInput.jump = true;
                 if (input.isDown('Space') || input.isDown('ArrowUp') || input.isDown('KeyW') || input.isDown('GAMEPAD_A')) pInput.jumpHeld = true;
 
-                if (input.justPressed('KeyL') || input.isDown('GAMEPAD_X') || input.justPressed('KeyX')) pInput.dash = true;
-                if (input.justPressed('KeyJ') || input.isDown('GAMEPAD_B') || input.justPressed('KeyZ')) pInput.attack = true;
-                if (input.justPressed('KeyK') || input.isDown('GAMEPAD_Y') || input.justPressed('ShiftLeft') || input.justPressed('ShiftRight')) pInput.power = true;
+                if (input.justPressed('KeyL') || input.justPressed('GAMEPAD_X') || input.justPressed('KeyX')) pInput.dash = true;
+                if (input.justPressed('KeyJ') || input.justPressed('GAMEPAD_B') || input.justPressed('KeyZ')) pInput.attack = true;
+                if (input.justPressed('KeyK') || input.justPressed('GAMEPAD_Y') || input.justPressed('ShiftLeft') || input.justPressed('ShiftRight')) pInput.power = true;
 
                 // ── Time powers (keys 1-5) ──
                 if (player.alive) {
