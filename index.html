@@ -54,8 +54,14 @@
             let w = window.innerWidth * 0.95;
             let h = w / aspect;
             if (h > window.innerHeight * 0.9) { h = window.innerHeight * 0.9; w = h * aspect; }
-            canvas.width = Math.floor(w);
-            canvas.height = Math.floor(h);
+            w = Math.floor(w);
+            h = Math.floor(h);
+            if (typeof engine !== 'undefined') {
+                engine.resize(w, h);
+            } else {
+                canvas.width = w;
+                canvas.height = h;
+            }
         }
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
