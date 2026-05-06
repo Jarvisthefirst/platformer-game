@@ -31,7 +31,7 @@ export class AudioManager {
         // Music state
         this.musicPlaying = false;
         this.musicOscillators = [];
-        this.musicTimer = 0;
+        this._nextBeatTime = 0;  // Next beat time in AudioContext clock
         this.bpm = 140;
         this.beatDuration = 0;
         this.currentBeat = 0;
@@ -323,14 +323,15 @@ export class AudioManager {
     /**
      * Start procedural background music.
      * Simple beat-driven bass + chord progression.
+     * Uses AudioContext.currentTime for drift-free scheduling.
      */
     startMusic() {
         this._ensureInit();
         if (!this.ctx || this.musicPlaying) return;
         this.musicPlaying = true;
-        this.musicTimer = 0;
         this.currentBeat = 0;
-        this._scheduleBeat();
+        this._nextBeatTime = this.ctx.currentTime;
+        this._scheduleAhead();
     }
 
     /**
@@ -338,6 +339,10 @@ export class AudioManager {
      */
     stopMusic() {
         this.musicPlaying = false;
+        if (this._beatTimeout) {
+            clearTimeout(this._beatTimeout);
+            this._beatTimeout = null;
+        }
         // Stop all active oscillators
         for (const osc of this.musicOscillators) {
             try { osc.stop(); } catch (e) { /* already stopped */ }
@@ -346,39 +351,49 @@ export class AudioManager {
     }
 
     /**
-     * Schedule the next beat (simple lo-fi beat sequence).
+     * Schedule beats ahead using AudioContext.currentTime.
+     * Uses a lookahead window so timing is sample-accurate.
+     * setTimeout is only used to advance the lookahead window, not for beat timing.
      */
-    _scheduleBeat() {
+    _scheduleAhead() {
         if (!this.musicPlaying || !this.ctx) return;
 
+        const lookAhead = 0.1; // 100ms lookahead window
         const now = this.ctx.currentTime;
-        const beatLen = this.beatDuration;
 
-        // Bass line (simple pattern cycling through notes)
+        // Schedule all beats within the lookahead window
+        while (this._nextBeatTime < now + lookAhead) {
+            this._scheduleBeatAt(this._nextBeatTime);
+            this._nextBeatTime += this.beatDuration;
+        }
+
+        // Schedule next check — this is just to advance the window, not for beat timing
+        this._beatTimeout = setTimeout(() => {
+            this._scheduleAhead();
+        }, 50);
+    }
+
+    /**
+     * Schedule a single beat at an exact AudioContext time.
+     */
+    _scheduleBeatAt(time) {
         const bassNotes = [130.81, 146.83, 164.81, 174.61]; // C3, D3, E3, F3
         const pattern = [0, 0, 1, 1, 2, 2, 3, 3]; // 8-beat pattern
 
         // Kick drum (on beats 0, 2, 4, 6)
         if (this.currentBeat % 2 === 0) {
-            this._playKick(now, 0.3);
+            this._playKick(time, 0.3);
         }
 
         // Hi-hat (every 8th note)
-        this._playHat(now, 0.1);
+        this._playHat(time, 0.1);
 
         // Bass (on each beat)
         const noteIdx = pattern[this.currentBeat % pattern.length];
         const freq = bassNotes[noteIdx];
-        this._playBass(now, freq, beatLen * 0.8, 0.15);
+        this._playBass(time, freq, this.beatDuration * 0.8, 0.15);
 
-        // Schedule next beat
         this.currentBeat++;
-        this.musicTimer += beatLen;
-
-        const nextBeatDelay = beatLen * 1000;
-        this._beatTimeout = setTimeout(() => {
-            this._scheduleBeat();
-        }, nextBeatDelay);
     }
 
     /**
