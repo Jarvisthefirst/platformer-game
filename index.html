@@ -414,6 +414,9 @@
                         }
                     }
                     if (input.justPressed('Digit5') || input.justPressed('Numpad5')) {
+                        // One echo at a time (GDD spec)
+                        const existing = gameState.echoes.find(e => e.alive);
+                        if (existing) existing.destroy();
                         const history = player.activateEcho();
                         if (history) {
                             const echo = new EchoEntity(player.x, player.y, history);

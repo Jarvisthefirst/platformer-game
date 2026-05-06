@@ -6,7 +6,7 @@
  * time powers, wall mechanics.
  */
 
-import { Player, Entity, Projectile, ParticleSystem, Collectible } from '../entities.js';
+import { Player, Entity, Projectile, ParticleSystem, Collectible, EchoEntity } from '../entities.js';
 import { PHYSICS, PhysicsBody } from '../physics.js';
 import { createTestCanvas, assert, assertEqual, assertClose, C } from './test-helper.js';
 
@@ -755,6 +755,168 @@ test('Rewind activates invincibility and resets velocity', () => {
     assertEqual(p.body.vy, 0, 'Velocity vy reset to 0');
     assertEqual(p.body.gravityScale, 1, 'Gravity scale restored to 1');
     ok('Rewind grants invincibility and resets physics state');
+});
+
+// ══════════════════════════════════════════════════════════════════
+run('Echo');
+
+test('Echo records position history', () => {
+    const p = setupPlayer(32, 240);
+    p.update(1/60);
+    assert(p.echoPositionHistory.length > 0, 'Echo position history should have entries after one update');
+    const entry = p.echoPositionHistory[0];
+    assert(entry.x !== undefined, 'Entry has x');
+    assert(entry.y !== undefined, 'Entry has y');
+    assert(entry.flipX !== undefined, 'Entry has flipX');
+    assertEqual(entry.x, 32, 'Initial x position matches');
+    assertEqual(entry.y, 240, 'Initial y position matches');
+    ok('Echo records position history with x, y, flipX');
+});
+
+test('Echo history capped at 240 frames (4 seconds)', () => {
+    const p = setupPlayer(32, 240);
+    // Simulate 250 frames of updates
+    for (let i = 0; i < 250; i++) {
+        p.update(1/60);
+    }
+    assert(p.echoPositionHistory.length <= 240,
+        `Echo history should be capped at 240, got ${p.echoPositionHistory.length}`);
+    ok('Echo history capped at 240 frames (4 seconds at 60fps)');
+});
+
+test('Echo records historical movement', () => {
+    const p = setupPlayer(32, 240);
+    // Record initial position
+    p.update(1/60);
+    assertEqual(p.echoPositionHistory[0].x, 32, 'First entry at x=32');
+    // Move the player
+    p.x = 100;
+    p.flipX = true;
+    p.update(1/60);
+    assertEqual(p.echoPositionHistory[1].x, 100, 'Second entry at x=100 after movement');
+    assertEqual(p.echoPositionHistory[1].flipX, true, 'FlipX recorded as true');
+    ok('Echo history correctly records player position changes');
+});
+
+test('Echo requires minimum 30 recorded frames', () => {
+    const p = setupPlayer(32, 240);
+    // Only record a few frames
+    for (let i = 0; i < 10; i++) {
+        p.update(1/60);
+    }
+    const result = p.activateEcho();
+    assert(result === null, 'Echo should return null with < 30 frames recorded');
+    ok('Echo returns null with insufficient history');
+});
+
+test('Echo costs 3.0 chrono gauge', () => {
+    const p = setupPlayer(32, 240);
+    // Record enough frames
+    p.chronoGauge = 8;
+    for (let i = 0; i < 60; i++) {
+        p.update(1/60);
+    }
+    const gaugeBefore = p.chronoGauge;
+    const result = p.activateEcho();
+    assert(result !== null, 'Echo should succeed');
+    assertClose(p.chronoGauge, gaugeBefore - 3.0, 0.01, 'Gauge should decrease by 3.0');
+    ok('Echo costs 3.0 chrono gauge (GDD spec)');
+});
+
+test('Echo fails with < 3.0 chrono gauge', () => {
+    const p = setupPlayer(32, 240);
+    p.chronoGauge = 2.0;
+    for (let i = 0; i < 60; i++) {
+        p.update(1/60);
+    }
+    const result = p.activateEcho();
+    assert(result === null || result === false, 'Echo should fail with < 3.0 gauge');
+    ok('Echo requires 3.0 chrono gauge');
+});
+
+test('Echo returns position history array', () => {
+    const p = setupPlayer(32, 240);
+    p.chronoGauge = 8;
+    for (let i = 0; i < 60; i++) {
+        p.update(1/60);
+    }
+    const history = p.activateEcho();
+    assert(Array.isArray(history), 'Echo returns an array');
+    assert(history.length > 30, 'Echo returns position history with enough frames');
+    const entry = history[0];
+    assert(entry.x !== undefined, 'Entry has x');
+    assert(entry.y !== undefined, 'Entry has y');
+    assert(entry.flipX !== undefined, 'Entry has flipX');
+    ok('Echo returns position history array with x, y, flipX entries');
+});
+
+test('Echo is only available when unlocked', () => {
+    const p = setupPlayer(32, 240);
+    p.chronoGauge = 8;
+    for (let i = 0; i < 60; i++) {
+        p.update(1/60);
+    }
+    // Remove echo from unlocked powers
+    p.unlockedPowers = p.unlockedPowers.filter(pw => pw !== 'echo');
+    const result = p.activateEcho();
+    assert(result === false, 'Echo should return false when not unlocked');
+    ok('Echo is gated behind echo unlock');
+});
+
+// ══════════════════════════════════════════════════════════════════
+run('EchoEntity');
+
+test('EchoEntity created from position history', () => {
+    const history = [
+        { x: 100, y: 200, flipX: false },
+        { x: 110, y: 195, flipX: false },
+        { x: 120, y: 190, flipX: true },
+    ];
+    const echo = new EchoEntity(100, 200, history);
+    assert(echo.alive, 'Echo entity is alive');
+    assert(echo.tags.includes('echo'), 'Echo entity has echo tag');
+    assert(echo.tags.includes('ally'), 'Echo entity has ally tag');
+    assertEqual(echo.x, 100, 'Echo starts at initial x');
+    assertEqual(echo.y, 200, 'Echo starts at initial y');
+    ok('EchoEntity created correctly from position history');
+});
+
+test('EchoEntity replays exact positions', () => {
+    const history = [
+        { x: 100, y: 200, flipX: false },
+        { x: 110, y: 195, flipX: false },
+        { x: 120, y: 190, flipX: true },
+        { x: 130, y: 185, flipX: true },
+        { x: 140, y: 180, flipX: false },
+    ];
+    const echo = new EchoEntity(100, 200, history);
+    // Fast forward through frames
+    assertEqual(echo.x, 100, 'Frame 0: x=100');
+    echo.update(1/60);
+    assertEqual(echo.x, 110, 'Frame 1: x=110');
+    echo.update(1/60);
+    assertEqual(echo.x, 120, 'Frame 2: x=120');
+    assertEqual(echo.flipX, true, 'Frame 2: flipX=true');
+    echo.update(1/60);
+    assertEqual(echo.x, 130, 'Frame 3: x=130');
+    echo.update(1/60);
+    assertEqual(echo.x, 140, 'Frame 4: x=140');
+    // Next update should reach end
+    echo.update(1/60);
+    assert(!echo.alive, 'Echo should be destroyed after playback ends');
+    ok('EchoEntity replays exact positions from history');
+});
+
+test('EchoEntity position-based rendering does not require tile grid', () => {
+    const history = [
+        { x: 100, y: 200, flipX: false },
+        { x: 110, y: 195, flipX: false },
+    ];
+    const echo = new EchoEntity(100, 200, history);
+    // No tiles set — should still work because EchoEntity doesn't use physics
+    echo.update(1/60);
+    assertEqual(echo.x, 110, 'Echo updates position without tile grid');
+    ok('EchoEntity works without tile grid (pure position playback)');
 });
 
 run('Respawn');

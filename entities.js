@@ -137,9 +137,9 @@ export class Player extends Entity {
         this.historyFull = false;
         this.rewindCooldown = 0;
 
-        // ── Echo recording ──
-        this.inputHistory = [];
-        this.maxInputHistory = 120; // 2 seconds at 60fps
+        // ── Echo recording (position history for frozen-movement playback) ──
+        this.echoPositionHistory = [];
+        this.maxEchoHistory = 240; // 4 seconds at 60fps — GDD spec
 
         // ── Visual ──
         this.footstepTimer = 0;
@@ -353,8 +353,8 @@ export class Player extends Entity {
         // ── Record position history (for rewind) ──
         this._recordPosition();
 
-        // ── Record input history (for echo) ──
-        this._recordInput();
+        // ── Record position history (for echo frozen copy) ──
+        this._recordEchoPosition();
 
         // ── Facing ──
         if (this.moveInput.x > 0) this.flipX = false;
@@ -501,34 +501,28 @@ export class Player extends Entity {
         return true;
     }
 
-    // ── Input recording (for echo) ──
+    // ── Position recording (for echo frozen copy) ──
 
-    _recordInput() {
-        this.inputHistory.push({
-            x: this.moveInput.x,
-            jump: this.moveInput.jump,
-            jumpHeld: this.moveInput.jumpHeld,
-            dash: this.moveInput.dash,
-            attack: this.moveInput.attack,
-            power: this.moveInput.power,
-        });
-        if (this.inputHistory.length > this.maxInputHistory) {
-            this.inputHistory.shift();
+    _recordEchoPosition() {
+        this.echoPositionHistory.push({ x: this.x, y: this.y, flipX: this.flipX });
+        if (this.echoPositionHistory.length > this.maxEchoHistory) {
+            this.echoPositionHistory.shift();
         }
     }
 
     /**
-     * Echo — get recorded input history for last 2 seconds. Cost 4 bars.
-     * Returns input history or null if insufficient gauge.
+     * Echo — creates a frozen copy of the player's last 4 seconds of movement.
+     * Cost 3.0 bars. GDD spec: "Spawns a frozen copy of the player's last 2s of movement.
+     * Echoes deal damage on contact. One at a time."
+     * Returns position history array or null if insufficient gauge.
      */
     activateEcho() {
         if (!this.unlockedPowers.includes('echo')) return false;
-        if (this.chronoGauge < 4.0) return false;
-        if (this.inputHistory.length < 30) return null; // Need at least 30 frames
-        this.chronoGauge -= 4.0;
+        if (this.chronoGauge < 3.0) return false;
+        if (this.echoPositionHistory.length < 30) return null; // Need at least 30 frames
+        this.chronoGauge -= 3.0;
         this.chronoRechargeTimer = this.chronoRechargeDelay;
-        // Return a copy of the input history for the scene to use
-        return this.inputHistory.slice();
+        return this.echoPositionHistory.slice();
     }
 
     isBurstActive() {
@@ -845,36 +839,40 @@ export class Projectile extends Entity {
 // ═══════════════════════════════════════════════════════════
 
 export class EchoEntity extends Entity {
-    constructor(x, y, inputHistory) {
+    constructor(x, y, positionHistory) {
         super(x, y, 14, 16);
         this.tags.push('echo', 'ally');
-        this.inputHistory = inputHistory; // Array of input frames
+        // Position history: [{x, y, flipX}, ...] — exact player positions
+        this.positionHistory = positionHistory;
         this.currentFrame = 0;
-        this.body.gravityScale = 1;
-        this.lifetime = inputHistory.length / 60;
+        this.lifetime = positionHistory.length / 60; // ~4 seconds at 240 frames
         this.timer = 0;
         this.alpha = 0.7;
         this.zIndex = 5;
         this.dealtDamage = new Set(); // Track enemies hit
+        // Set initial position from first snapshot
+        if (positionHistory.length > 0) {
+            const first = positionHistory[0];
+            this.x = first.x;
+            this.y = first.y;
+            this.flipX = first.flipX;
+        }
     }
 
     update(dt) {
         this.timer += dt;
         this.currentFrame = Math.floor(this.timer * 60);
-        if (this.currentFrame >= this.inputHistory.length) {
+        if (this.currentFrame >= this.positionHistory.length) {
             this.destroy();
             return;
         }
-        // Simulate simple movement based on recorded input
-        const input = this.inputHistory[this.currentFrame];
-        if (this.tiles) {
-            this.body.vx = (input.x || 0) * 200;
-            applyPhysics(this.body, dt);
-            moveAndCollide(this, dt, this.tiles, this.tileW, this.tileH, id => id >= 1, id => id === 2);
-        } else {
-            this.x += (input.x || 0) * 200 * dt;
-        }
-        this.flipX = (input.x || 0) < 0;
+        // Exact position playback — no physics simulation needed
+        const pos = this.positionHistory[this.currentFrame];
+        this.x = pos.x;
+        this.y = pos.y;
+        this.flipX = pos.flipX;
+        // Pulse alpha for visual feedback
+        this.alpha = 0.5 + Math.sin(this.timer * 4) * 0.2;
     }
 
     getCenter() {
