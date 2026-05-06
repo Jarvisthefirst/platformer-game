@@ -32,7 +32,7 @@ See `/data/.openclaw/workspace/project-automation.md` for the general pattern.
 9. ~~Implement Echo (Crystal 4): clone placement, frozen-movement playback, contact damage~~ (DONE)
 
 ### Phase 3 — Polish & Content
-10. Fix gamepad attack (justPressed vs isDown)
+10. ~~Fix gamepad attack (justPressed vs isDown)~~ (DONE)
 11. Fix canvas resize not updating engine scale
 12. Fix projectile wall collision (check all 4 corners)
 13. Fix music scheduling drift (use AudioContext.currentTime instead of setTimeout)
@@ -73,3 +73,4 @@ See `/data/.openclaw/workspace/project-automation.md` for the general pattern.
 - **2026-05-05 (6th run):** Item 7: Wired Time Rush — enemies speed up to 1.2x (was 0.5x slow), player already 2x speed (400 px/s). Gauge drain 1.5s/sec, activation cost 1.0s. All 125/125 tests passing.
 - **2026-05-06:** Item 8: Wired Rewind — added 5s cooldown (`rewindCooldown`), health tracking in position history snapshots (`_recordPosition` now stores `{x, y, health}`), health restore on rewind activation. Added 7 new rewind unit tests: history recording, position restore, health restore, insufficient frames guard, cooldown enforcement, gauge requirement, invincibility/velocity reset. Total: 132/132 tests passing.
 - **2026-05-06 (2nd run):** Item 9: Wired Echo — Changed from input-based recording to position-based playback ("frozen copy" of last 4s of movement). Activation cost 4.0→3.0 to match GDD. History buffer 120→240 frames (2s→4s). One-at-a-time enforcement in scene. Rewrote EchoEntity for exact position replay (no physics/tile grid dependency). Fixed test runner to be executable. Added 11 echo unit tests. Total: 143/143 tests passing.
+- **2026-05-06 (3rd run):** Item 10: Fixed gamepad attack — changed `isDown` to `justPressed` for `GAMEPAD_X`, `GAMEPAD_B`, `GAMEPAD_Y` in player input. Holding a gamepad face button no longer triggers continuous dash/attack/power. Jump and jumpHeld (variable-height) on GAMEPAD_A left as-is (correct behavior). All 143/143 tests passing.
