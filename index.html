@@ -975,20 +975,8 @@
                 if (!player) return;
                 const w = engine.baseWidth, h = engine.baseHeight;
 
-                // ── Health as hearts ──
-                ctx.fillStyle = '#333';
-                ctx.fillRect(6, 4, 70, 12);
-                const heartSize = 7;
-                for (let i = 0; i < player.maxHealth; i++) {
-                    const hx = 10 + i * (heartSize + 2);
-                    const hy = 6;
-                    ctx.fillStyle = i < player.health ? '#f44' : '#444';
-                    ctx.beginPath();
-                    ctx.moveTo(hx, hy + heartSize * 0.3);
-                    ctx.bezierCurveTo(hx - heartSize * 0.5, hy - heartSize * 0.3, hx - heartSize * 0.7, hy + heartSize * 0.3, hx, hy + heartSize * 0.7);
-                    ctx.bezierCurveTo(hx + heartSize * 0.7, hy + heartSize * 0.3, hx + heartSize * 0.5, hy - heartSize * 0.3, hx, hy + heartSize * 0.3);
-                    ctx.fill();
-                }
+                // ── Health bar ──
+                drawHealthBar(ctx, player.health, player.maxHealth, 10, 5, 60, 6);
 
                 // ── Score ──
                 ctx.fillStyle = '#ffd700';
