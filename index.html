@@ -635,11 +635,21 @@
                     if (!proj.alive) continue;
                     proj.update(dt);
 
-                    // Wall collision
-                    const pc = Math.floor(proj.x / 16);
-                    const pr = Math.floor(proj.y / 16);
-                    const pt = tiles[pr]?.[pc];
-                    if (pt && levelManager.isSolid(pt)) { proj.destroy(); continue; }
+                    // Wall collision — check all 4 corners to prevent bullet-through-paper
+                    const corners = [
+                        { x: proj.x, y: proj.y },
+                        { x: proj.x + proj.width - 1, y: proj.y },
+                        { x: proj.x, y: proj.y + proj.height - 1 },
+                        { x: proj.x + proj.width - 1, y: proj.y + proj.height - 1 }
+                    ];
+                    let hitWall = false;
+                    for (const corner of corners) {
+                        const pc = Math.floor(corner.x / 16);
+                        const pr = Math.floor(corner.y / 16);
+                        const pt = tiles[pr]?.[pc];
+                        if (pt && levelManager.isSolid(pt)) { hitWall = true; break; }
+                    }
+                    if (hitWall) { proj.destroy(); continue; }
 
                     if (proj.fromPlayer) {
                         // Hit enemies
