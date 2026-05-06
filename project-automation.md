@@ -3,7 +3,7 @@
 See `/data/.openclaw/workspace/project-automation.md` for the general pattern.
 
 ## Current State
-- **Last commit:** 2026-05-06 "Auto: wire Echo — frozen-movement position playback"
+- **Last commit:** 2026-05-06 "Auto: Fix projectile wall collision — check all 4 corners (Item 12)"
 - **Tests:** 143/143 passing
 - **State:** Clean working tree
 - **Line count:** ~5,300 across 8 files + test runner
@@ -33,8 +33,8 @@ See `/data/.openclaw/workspace/project-automation.md` for the general pattern.
 
 ### Phase 3 — Polish & Content
 10. ~~Fix gamepad attack (justPressed vs isDown)~~ (DONE)
-11. Fix canvas resize not updating engine scale
-12. Fix projectile wall collision (check all 4 corners)
+11. ~~Fix canvas resize not updating engine scale~~ (DONE)
+12. ~~Fix projectile wall collision (check all 4 corners)~~ (DONE)
 13. Fix music scheduling drift (use AudioContext.currentTime instead of setTimeout)
 14. Wire drawHealthBar from renderer.js into HUD
 15. Clean up: dead code removal (Enemy.onCollide, entity tile collision on entities)
@@ -75,3 +75,4 @@ See `/data/.openclaw/workspace/project-automation.md` for the general pattern.
 - **2026-05-06 (2nd run):** Item 9: Wired Echo — Changed from input-based recording to position-based playback ("frozen copy" of last 4s of movement). Activation cost 4.0→3.0 to match GDD. History buffer 120→240 frames (2s→4s). One-at-a-time enforcement in scene. Rewrote EchoEntity for exact position replay (no physics/tile grid dependency). Fixed test runner to be executable. Added 11 echo unit tests. Total: 143/143 tests passing.
 - **2026-05-06 (3rd run):** Item 10: Fixed gamepad attack — changed `isDown` to `justPressed` for `GAMEPAD_X`, `GAMEPAD_B`, `GAMEPAD_Y` in player input. Holding a gamepad face button no longer triggers continuous dash/attack/power. Jump and jumpHeld (variable-height) on GAMEPAD_A left as-is (correct behavior). All 143/143 tests passing.
 - **2026-05-06 (4th run):** Item 11: Fixed canvas resize not updating engine scale. `resizeCanvas()` now delegates to `engine.resize(w, h)` which calls `_updateScale()`, keeping `scaleX`/`scaleY` in sync with actual canvas dimensions. First-time call (before `engine` exists) still sets canvas directly. All 143/143 tests passing.
+- **2026-05-06 (5th run):** Item 12: Fixed projectile wall collision — replaced single-point (top-left corner) check with 4-corner AABB check. Projectiles now test all 4 corners against the tile grid, preventing bullet-through-paper tunneling at high speeds or near tile seams. All 143/143 tests passing.
