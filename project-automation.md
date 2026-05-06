@@ -4,7 +4,7 @@ See `/data/.openclaw/workspace/project-automation.md` for the general pattern.
 
 ## Current State
 - **Last commit:** 2026-05-05 "Auto: fix parallax background disappearing past camera.x > 320 (screen space render)"
-- **Tests:** 125/125 passing
+- **Tests:** 132/132 passing
 - **State:** Clean working tree
 - **Line count:** ~5,085 across 8 files (JS + HTML)
 - **Remote:** https://github.com/Jarvisthefirst/platformer-game.git
@@ -71,3 +71,4 @@ See `/data/.openclaw/workspace/project-automation.md` for the general pattern.
 - **2026-05-05 (4th run):** Phase 1 complete. Items 3 (dash speed) and 4 (save consolidation) were already done in code. Phase 2 started. Item 5: Wired Chrono Burst — fixed burst cost 2.0→0.5s, duration 0.3→0.5s to match GDD spec. Added projectile velocity reduction (60% slow) within burst radius. Enemies slowed to 40% (60% slow). All 125/125 tests passing. Replaced `onGround`-dependent hazard check with full AABB overlap check (all 4 corners of player body). Added particle VFX on spike damage. Also fixed pre-existing test failures: updated player tests (maxJumps 2→1 for gated double jump), level tests (solidTiles now includes tile 5, spike positions corrected). All 125/125 tests passing.
 - **2026-05-05 (5th run):** Item 6: Wired Slow Field — enemies slowed to 30% (was 50%), projectiles slowed to 40%, player moves at 80% speed (160 px/s), slow/rush are now mutually exclusive (activating one deactivates the other). All tests passing.
 - **2026-05-05 (6th run):** Item 7: Wired Time Rush — enemies speed up to 1.2x (was 0.5x slow), player already 2x speed (400 px/s). Gauge drain 1.5s/sec, activation cost 1.0s. All 125/125 tests passing.
+- **2026-05-06:** Item 8: Wired Rewind — added 5s cooldown (`rewindCooldown`), health tracking in position history snapshots (`_recordPosition` now stores `{x, y, health}`), health restore on rewind activation. Added 7 new rewind unit tests: history recording, position restore, health restore, insufficient frames guard, cooldown enforcement, gauge requirement, invincibility/velocity reset. Total: 132/132 tests passing.
