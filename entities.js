@@ -8,7 +8,7 @@
  * Collectibles, Projectiles, ParticleSystem.
  */
 
-import { PhysicsBody, PHYSICS, applyPhysics, moveAndCollide, aabbOverlap } from './physics.js';
+import { PhysicsBody, PHYSICS, applyPhysics } from './physics.js';
 
 // ═══════════════════════════════════════════════════════════
 //  Base Entity
@@ -324,11 +324,6 @@ export class Player extends Entity {
         // ── Apply physics ──
         applyPhysics(this.body, dt);
 
-        // ── Tile collision ──
-        if (this.tiles) {
-            moveAndCollide(this, dt, this.tiles, this.tileW, this.tileH, id => id >= 1, id => id === 2);
-        }
-
         // ── State ──
         if (!this.alive) {
             this.state = 'dead';
@@ -597,11 +592,6 @@ export class Enemy extends Entity {
 
         applyPhysics(this.body, dt, PHYSICS.enemyGravity);
 
-        // ── Tile collision ──
-        if (this.tiles) {
-            moveAndCollide(this, dt, this.tiles, this.tileW, this.tileH, id => id >= 1, id => id === 2);
-        }
-
         if (Math.abs(this.body.vx) > 5) {
             this.animTimer += dt;
             if (this.animTimer >= this.animSpeed) {
@@ -629,12 +619,6 @@ export class Enemy extends Entity {
         if (this.health <= 0) this.destroy();
     }
 
-    onCollide(other) {
-        if (other.tags.includes('projectile')) {
-            this.takeDamage(1);
-            other.destroy();
-        }
-    }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -677,11 +661,6 @@ export class ChaserEnemy extends Enemy {
         }
 
         applyPhysics(this.body, dt, PHYSICS.enemyGravity);
-
-        // ── Tile collision ──
-        if (this.tiles) {
-            moveAndCollide(this, dt, this.tiles, this.tileW, this.tileH, id => id >= 1, id => id === 2);
-        }
 
         this.flipX = this.direction < 0;
         if (this.health <= 0 || this.y > 2000) this.destroy();
@@ -731,11 +710,6 @@ export class ShooterEnemy extends Enemy {
         }
 
         applyPhysics(this.body, dt, PHYSICS.enemyGravity);
-
-        // ── Tile collision ──
-        if (this.tiles) {
-            moveAndCollide(this, dt, this.tiles, this.tileW, this.tileH, id => id >= 1, id => id === 2);
-        }
 
         this.flipX = this.direction < 0;
         if (this.health <= 0 || this.y > 2000) this.destroy();
@@ -820,18 +794,10 @@ export class Projectile extends Entity {
         this.timer += dt;
         if (this.timer >= this.lifetime) this.destroy();
 
-        // ── Tile collision ──
-        if (this.tiles) {
-            moveAndCollide(this, dt, this.tiles, this.tileW, this.tileH, id => id >= 1, id => id === 2);
-        } else {
-            this.x += this.body.vx * dt;
-            this.y += this.body.vy * dt;
-        }
+        this.x += this.body.vx * dt;
+        this.y += this.body.vy * dt;
     }
 
-    onCollide(other) {
-        if (other.tags.includes('solid')) this.destroy();
-    }
 }
 
 // ═══════════════════════════════════════════════════════════
