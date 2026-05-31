@@ -163,6 +163,7 @@ export function getLevel1() {
             { type: 'coin', x: 596, y: 16 * 11 },
             { type: 'heart', x: 720, y: 16 * 16 },
             { type: 'gem', x: 768, y: 16 * 15 },
+            { type: 'double_jump', x: 740, y: 16 * 12 }, // Crystal 1: unlocks double jump
         ],
         exit: { x: 795, y: 16 * 16 },
     };
@@ -279,6 +280,7 @@ export function getLevel2() {
             { type: 'coin', x: 450, y: 16 * 11 },
             { type: 'gem', x: 540, y: 16 * 11 },
             { type: 'heart', x: 600, y: 16 * 14 },
+            { type: 'heart', x: 680, y: 16 * 12 },
         ],
         exit: { x: 830, y: 16 * 20 },
     };
@@ -400,6 +402,7 @@ export function getLevel3() {
             { type: 'shard', x: 600, y: 16 * 14 },
             { type: 'gem', x: 660, y: 16 * 14 },
             { type: 'heart', x: 760, y: 16 * 14 },
+            { type: 'heart', x: 200, y: 16 * 16 },
             { type: 'gem', x: 840, y: 16 * 20 },
         ],
         exit: { x: 880, y: 16 * 22 },

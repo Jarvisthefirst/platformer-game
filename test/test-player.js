@@ -78,8 +78,8 @@ test('Player instantiation has correct defaults', () => {
     assertEqual(p.width, 14, 'Player width');
     assertEqual(p.height, 16, 'Player height');
     assert(p.body instanceof PhysicsBody, 'Player has PhysicsBody');
-    assertEqual(p.health, 4, 'Default health');
-    assertEqual(p.maxHealth, 4, 'Default maxHealth');
+    assertEqual(p.health, 5, 'Default health');
+    assertEqual(p.maxHealth, 5, 'Default maxHealth');
     assertEqual(p.chronoGauge, 8, 'Default chrono gauge');
     assertEqual(p.chronoGaugeMax, 8, 'Default max chrono gauge');
     assertEqual(p.lives, 3, 'Default lives');
@@ -454,7 +454,7 @@ test('Take damage reduces health', () => {
     
     p.takeDamage(1);
     
-    assertEqual(p.health, 3, 'Health should be 3 after 1 damage');
+    assertEqual(p.health, 4, 'Health should be 4 after 1 damage');
     assert(p.invincible, 'Player should be invincible after damage');
     assert(p.invincibleTimer > 0, 'Invincibility timer should be positive');
     ok('Damage reduces health and triggers invincibility');
@@ -467,7 +467,7 @@ test('Invincible player ignores damage', () => {
     
     p.takeDamage(5);
     
-    assertEqual(p.health, 4, 'Health should not change while invincible');
+    assertEqual(p.health, 5, 'Health should not change while invincible');
     ok('Invincible player ignores additional damage');
 });
 
@@ -489,14 +489,14 @@ test('Dashing player ignores damage', () => {
     
     p.takeDamage(1);
     
-    assertEqual(p.health, 4, 'Health should not change during dash');
+    assertEqual(p.health, 5, 'Health should not change during dash');
     ok('Dashing player ignores damage');
 });
 
 test('Death triggers when health reaches 0', () => {
     const p = setupPlayer(32, 240);
     
-    p.takeDamage(4);
+    p.takeDamage(5);
     
     assert(!p.alive, 'Player should be dead');
     assertEqual(p.state, 'dead', 'Player state should be dead');
@@ -510,7 +510,7 @@ test('Death resets power states', () => {
     p.activePower = 'slow';
     p.isDashing = false;
     
-    p.takeDamage(4);
+    p.takeDamage(5);
     
     assert(!p.isDashing, 'Dash should reset on death');
     assert(!p.slowActive, 'Slow should reset on death');
@@ -615,7 +615,7 @@ test('Rewind records position history and correctly indexes', () => {
     assert(p.positionHistory[0] !== undefined, 'History entry exists');
     assertEqual(p.positionHistory[0].x, 100, 'Stores x position');
     assertEqual(p.positionHistory[0].y, 240, 'Stores y position');
-    assertEqual(p.positionHistory[0].health, 4, 'Stores health');
+    assertEqual(p.positionHistory[0].health, 5, 'Stores health');
 
     // Move and record more
     p.x = 150;
@@ -623,7 +623,7 @@ test('Rewind records position history and correctly indexes', () => {
     p.takeDamage(2);
     p._recordPosition();
     assertEqual(p.positionHistory[1].x, 150, 'Stores updated x');
-    assertEqual(p.positionHistory[1].health, 2, 'Stores updated health');
+    assertEqual(p.positionHistory[1].health, 3, 'Stores updated health');
 
     ok('Rewind position history records x, y, and health');
 });
@@ -648,7 +648,7 @@ test('Rewind restores position correctly', () => {
     assertEqual(p.x, 100, 'X restored to recorded position');
     assertEqual(p.y, 240, 'Y restored to recorded position');
     assert(p.body.vx === 0, 'Velocity reset to 0');
-    assertEqual(p.chronoGauge, 5, 'Gauge reduced by 3 (cost)');
+    assertEqual(p.chronoGauge, 6, 'Gauge reduced by 2 (cost)');
     ok('Rewind correctly restores position');
 });
 
@@ -686,7 +686,7 @@ test('Rewind requires minimum 2 recorded frames', () => {
     ok('Rewind returns false with insufficient history');
 });
 
-test('Rewind has 5s cooldown', () => {
+test('Rewind has 3s cooldown', () => {
     const p = setupPlayer(100, 240);
     p.chronoGauge = 8;
 
@@ -699,7 +699,7 @@ test('Rewind has 5s cooldown', () => {
 
     // First rewind succeeds
     assert(p.activateRewind(), 'First rewind should succeed');
-    assert(p.rewindCooldown > 4.5, 'Cooldown set to ~5s');
+    assert(p.rewindCooldown > 2.5, 'Cooldown set to ~3s');
 
     p.chronoGauge = 8; // Refill gauge
 
@@ -714,7 +714,7 @@ test('Rewind has 5s cooldown', () => {
     ok('Rewind enforces 5s cooldown');
 });
 
-test('Rewind requires 3.0 chrono gauge', () => {
+test('Rewind requires 2.0 chrono gauge', () => {
     const p = setupPlayer(100, 240);
 
     // Fill history
@@ -725,11 +725,11 @@ test('Rewind requires 3.0 chrono gauge', () => {
     p.historyIndex = 0;
 
     // Set low gauge
-    p.chronoGauge = 2.5;
+    p.chronoGauge = 1.5;
 
-    assert(!p.activateRewind(), 'Rewind should fail with < 3.0 gauge');
-    assertEqual(p.chronoGauge, 2.5, 'Gauge not consumed on failure');
-    ok('Rewind requires 3.0 chrono gauge');
+    assert(!p.activateRewind(), 'Rewind should fail with < 2.0 gauge');
+    assertEqual(p.chronoGauge, 1.5, 'Gauge not consumed on failure');
+    ok('Rewind requires 2.0 chrono gauge');
 });
 
 test('Rewind activates invincibility and resets velocity', () => {
@@ -809,7 +809,7 @@ test('Echo requires minimum 30 recorded frames', () => {
     ok('Echo returns null with insufficient history');
 });
 
-test('Echo costs 3.0 chrono gauge', () => {
+test('Echo costs 2.0 chrono gauge', () => {
     const p = setupPlayer(32, 240);
     // Record enough frames
     p.chronoGauge = 8;
@@ -819,19 +819,19 @@ test('Echo costs 3.0 chrono gauge', () => {
     const gaugeBefore = p.chronoGauge;
     const result = p.activateEcho();
     assert(result !== null, 'Echo should succeed');
-    assertClose(p.chronoGauge, gaugeBefore - 3.0, 0.01, 'Gauge should decrease by 3.0');
+    assertClose(p.chronoGauge, gaugeBefore - 2.0, 0.01, 'Gauge should decrease by 2.0');
     ok('Echo costs 3.0 chrono gauge (GDD spec)');
 });
 
-test('Echo fails with < 3.0 chrono gauge', () => {
+test('Echo fails with < 2.0 chrono gauge', () => {
     const p = setupPlayer(32, 240);
-    p.chronoGauge = 2.0;
+    p.chronoGauge = 0.5;
     for (let i = 0; i < 60; i++) {
         p.update(1/60);
     }
     const result = p.activateEcho();
-    assert(result === null || result === false, 'Echo should fail with < 3.0 gauge');
-    ok('Echo requires 3.0 chrono gauge');
+    assert(result === null || result === false, 'Echo should fail with < 2.0 gauge');
+    ok('Echo requires 2.0 chrono gauge');
 });
 
 test('Echo returns position history array', () => {
@@ -923,7 +923,7 @@ run('Respawn');
 
 test('Respawn restores player state', () => {
     const p = setupPlayer(32, 240);
-    p.takeDamage(4);
+    p.takeDamage(5);
     
     assert(!p.alive, 'Player is dead');
     

@@ -238,7 +238,7 @@ test('Collectibles are not inside solid tiles', () => {
 });
 
 test('Collectibles have valid types and positions', () => {
-    const validTypes = ['coin', 'gem', 'star', 'heart', 'shard'];
+    const validTypes = ['coin', 'gem', 'star', 'heart', 'shard', 'double_jump'];
 
     for (let i = 0; i < LEVELS.length; i++) {
         const d = getLevelData(i);

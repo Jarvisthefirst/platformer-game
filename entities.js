@@ -87,7 +87,7 @@ export class Player extends Entity {
         this.dashTimer = 0;
         this.dashDuration = 0.15;
         this.dashSpeed = 2000;
-        this.dashCooldown = 0.35;
+        this.dashCooldown = 0.5;
         this.dashCDTimer = 0;
         this.dashDir = 1;
 
@@ -110,8 +110,8 @@ export class Player extends Entity {
         this.invincibleTimer = 0;
 
         // ── Stats ──
-        this.health = 4;
-        this.maxHealth = 4;
+        this.health = 5;
+        this.maxHealth = 5;
         this.lives = 3;
         this.score = 0;
 
@@ -120,7 +120,7 @@ export class Player extends Entity {
         this.chronoGaugeMax = 8;
         this.chronoRechargeDelay = 0.5;
         this.chronoRechargeTimer = 0;
-        this.chronoRechargeRate = 0.666; // seconds of gauge per real second
+        this.chronoRechargeRate = 0.8; // seconds of gauge per real second
 
         // Time powers
         this.unlockedPowers = ['burst', 'slow', 'rush', 'rewind', 'echo'];
@@ -418,12 +418,12 @@ export class Player extends Entity {
             this.activePower = null;
             return true;
         }
-        if (this.chronoGauge < 2.0) return false;
+        if (this.chronoGauge < 1.0) return false;
         // Deactivate rush if active (mutually exclusive)
         if (this.rushActive) {
             this.rushActive = false;
         }
-        this.chronoGauge -= 2.0;
+        this.chronoGauge -= 1.0;
         this.slowActive = true;
         this.activePower = 'slow';
         this.chronoRechargeTimer = 0.5;
@@ -461,11 +461,11 @@ export class Player extends Entity {
     }
 
     /**
-     * Rewind — restore position & health to 3 seconds ago. Cost 3 bars. Cooldown 5s.
+     * Rewind — restore position & health to 3 seconds ago. Cost 2 bars. Cooldown 3s.
      */
     activateRewind() {
         if (!this.unlockedPowers.includes('rewind')) return false;
-        if (this.chronoGauge < 3.0) return false;
+        if (this.chronoGauge < 2.0) return false;
         if (this.rewindCooldown > 0) return false;
         const lookback = Math.min(180, this.historyFull ? 180 : this.historyIndex);
         if (lookback < 2) return false;
@@ -479,9 +479,9 @@ export class Player extends Entity {
         }
         const pos = this.positionHistory[idx];
         if (!pos) return false;
-        this.chronoGauge -= 3.0;
+        this.chronoGauge -= 2.0;
         this.chronoRechargeTimer = this.chronoRechargeDelay;
-        this.rewindCooldown = 5.0;
+        this.rewindCooldown = 3.0;
         this.x = pos.x;
         this.y = pos.y;
         // Restore health to snapshot value (max 3s ago)
@@ -513,9 +513,9 @@ export class Player extends Entity {
      */
     activateEcho() {
         if (!this.unlockedPowers.includes('echo')) return false;
-        if (this.chronoGauge < 3.0) return false;
+        if (this.chronoGauge < 2.0) return false;
         if (this.echoPositionHistory.length < 30) return null; // Need at least 30 frames
-        this.chronoGauge -= 3.0;
+        this.chronoGauge -= 2.0;
         this.chronoRechargeTimer = this.chronoRechargeDelay;
         return this.echoPositionHistory.slice();
     }
@@ -610,7 +610,7 @@ export class Enemy extends Entity {
         this.aggro = true;
         this.aggroTimer = 2.0;
         this.direction = player.x < this.x ? -1 : 1;
-        this.body.maxSpeedX = 120;
+        this.body.maxSpeedX = 100;
     }
 
     takeDamage(amount = 1) {
@@ -634,7 +634,7 @@ export class ChaserEnemy extends Enemy {
         this.scoreValue = 200;
         this.body.maxSpeedX = 90;
         this.detectRange = 160;
-        this.chaseSpeed = 140;
+        this.chaseSpeed = 120;
         this.attackCooldown = 0;
         this.attackRange = 24;
     }

@@ -264,8 +264,12 @@ export class Engine {
 
 export class InputManager {
     constructor() {
-        this._keys = {};       // Current state
-        this._prevKeys = {};   // Previous frame state
+        this._keys = {};             // Current state
+        this._justPressed = {};      // Pressed this frame (pre-update)
+        this._justReleased = {};     // Released this frame (pre-update)
+        this._frameJustPressed = {}; // Snapshot for justPressed()
+        this._frameJustReleased = {};// Snapshot for justReleased()
+        this._prevGamepadKeys = {};  // Previous frame gamepad state for edge detection
 
         // Gamepad support
         this.gamepadIndex = -1;
@@ -284,12 +288,17 @@ export class InputManager {
         });
     }
 
-    /** Call once per fixed timestep to update just-pressed/just-released. */
+    /**
+     * Call once per fixed timestep.
+     * Snapshots just-pressed/released then clears accumulators.
+     */
     update() {
-        // Save previous state
-        for (const key in this._keys) {
-            this._prevKeys[key] = this._keys[key];
-        }
+        // Snapshot just-pressed/released before clearing
+        this._frameJustPressed = this._justPressed;
+        this._frameJustReleased = this._justReleased;
+        this._justPressed = {};
+        this._justReleased = {};
+
         // Poll gamepad if connected
         this._pollGamepad();
     }
@@ -299,20 +308,22 @@ export class InputManager {
     _onKeyDown(e) {
         if (e.repeat) return;
         this._keys[e.code] = true;
+        this._justPressed[e.code] = true;
     }
 
     _onKeyUp(e) {
         this._keys[e.code] = false;
+        this._justReleased[e.code] = true;
     }
 
     isDown(key) { return !!this._keys[key]; }
 
     justPressed(key) {
-        return this._keys[key] && !this._prevKeys[key];
+        return this._frameJustPressed[key] === true;
     }
 
     justReleased(key) {
-        return !this._keys[key] && this._prevKeys[key];
+        return this._frameJustReleased[key] === true;
     }
 
     // ── Gamepad ──
@@ -335,9 +346,19 @@ export class InputManager {
 
         // Face buttons → action keys
         this._keys['GAMEPAD_A'] = gp.buttons[0]?.pressed || false; // Jump
-        this._keys['GAMEPAD_B'] = gp.buttons[1]?.pressed || false; // Action
-        this._keys['GAMEPAD_X'] = gp.buttons[2]?.pressed || false; // Shoot
-        this._keys['GAMEPAD_Y'] = gp.buttons[3]?.pressed || false; // Switch
+        this._keys['GAMEPAD_B'] = gp.buttons[1]?.pressed || false; // Shoot
+        this._keys['GAMEPAD_X'] = gp.buttons[2]?.pressed || false; // Chrono Burst
+        this._keys['GAMEPAD_Y'] = gp.buttons[3]?.pressed || false; // Rewind
+
+        // Shoulders / Triggers
+        this._keys['GAMEPAD_LEFT_SHOULDER']  = gp.buttons[4]?.pressed || false; // Slow Field
+        this._keys['GAMEPAD_RIGHT_SHOULDER'] = gp.buttons[5]?.pressed || false; // Echo
+        this._keys['GAMEPAD_LEFT_TRIGGER']   = (gp.buttons[6]?.value || 0) > 0.3; // (reserved)
+        this._keys['GAMEPAD_RIGHT_TRIGGER']  = (gp.buttons[7]?.value || 0) > 0.3; // (reserved)
+
+        // Left / Right stick click (L3 / R3)
+        this._keys['GAMEPAD_LEFT_STICK']  = gp.buttons[10]?.pressed || false;
+        this._keys['GAMEPAD_RIGHT_STICK'] = gp.buttons[11]?.pressed || false;
 
         // Start / Select
         this._keys['GAMEPAD_START']  = gp.buttons[9]?.pressed || false;
@@ -354,6 +375,24 @@ export class InputManager {
         else this._keys['STICK_UP'] = false;
         if (ly >  this.deadZone) this._keys['STICK_DOWN']  = true;
         else this._keys['STICK_DOWN'] = false;
+
+        // ── Gamepad edge detection: track justPressed/justReleased ──
+        const gpKeys = [
+            'DPAD_UP','DPAD_DOWN','DPAD_LEFT','DPAD_RIGHT',
+            'GAMEPAD_A','GAMEPAD_B','GAMEPAD_X','GAMEPAD_Y',
+            'GAMEPAD_LEFT_SHOULDER','GAMEPAD_RIGHT_SHOULDER',
+            'GAMEPAD_LEFT_TRIGGER','GAMEPAD_RIGHT_TRIGGER',
+            'GAMEPAD_LEFT_STICK','GAMEPAD_RIGHT_STICK',
+            'GAMEPAD_START','GAMEPAD_SELECT',
+            'STICK_LEFT','STICK_RIGHT','STICK_UP','STICK_DOWN'
+        ];
+        for (const k of gpKeys) {
+            const now = !!this._keys[k];
+            const prev = !!this._prevGamepadKeys[k];
+            if (now && !prev) this._justPressed[k] = true;
+            if (!now && prev) this._justReleased[k] = true;
+            this._prevGamepadKeys[k] = now;
+        }
     }
 
     /** Get left stick X axis (-1 to 1). */
